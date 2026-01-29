@@ -1,0 +1,25 @@
+body {
+  background-color: #ede7da;
+  font-family: "Source Sans 3", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background-color: #2f5d50 !important;
+}
+
+main.container {
+  flex: 1;
+}
+
+.card {
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.btn-primary {
+  background-color: #2f5d50;
+  border-color: #2f5d50;
+}
