@@ -1,25 +1,470 @@
-body {
-  background-color: #ede7da;
-  font-family: "Source Sans 3", sans-serif;
+/* =========================
+   TEMA: Biblioteca (Bootstrap-friendly)
+========================= */
+
+:root{
+  --green: #1f5d50;
+  --green-2: #17463d;
+  --beige: #f3efe6;
+  --gold: #c58a2a;
+  --text: #22302c;
+  --muted: #6c7a74;
+  --shadow: 0 16px 34px rgba(0,0,0,.10);
+}
+
+*{ box-sizing: border-box; }
+
+body.app-body{
+  background: var(--beige);
+  color: var(--text);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-.navbar {
-  background-color: #2f5d50 !important;
+/* =========================
+   NAVBAR + FOOTER
+========================= */
+
+.app-navbar{
+  background: var(--green) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
-main.container {
+.navbar-brand{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+}
+
+.brand-icon{
+  font-size: 20px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar .nav-link{
+  color: rgba(255,255,255,.92) !important;
+  font-weight: 600;
+}
+
+.navbar .nav-link:hover{
+  color: #fff !important;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.app-main{
   flex: 1;
+  display: flex;
 }
 
-.card {
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+.app-footer{
+  background: var(--green-2);
+  color: rgba(255,255,255,.92);
 }
 
-.btn-primary {
-  background-color: #2f5d50;
-  border-color: #2f5d50;
+/* =========================
+   HERO (Home)
+========================= */
+
+.hero-wrap{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 44px 0;
 }
+
+.hero-grid{
+  display: grid;
+  grid-template-columns: 520px 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.hero-card{
+  background: #fff;
+  border-radius: 18px;
+  padding: 38px 42px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0,0,0,.05);
+  position: relative;
+}
+
+.hero-card::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  background: var(--gold);
+  border-radius: 18px 0 0 18px;
+}
+
+.hero-title{
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+  font-size: 54px;
+  line-height: 1.05;
+  margin: 0 0 14px;
+  color: var(--green);
+}
+
+.hero-title span{ color: var(--gold); }
+
+.hero-sub{
+  margin: 0 0 16px;
+  color: #2d3a36;
+  font-size: 15.5px;
+  max-width: 440px;
+}
+
+.hero-line{
+  border: none;
+  height: 1px;
+  background: rgba(0,0,0,.12);
+  margin: 16px 0;
+}
+
+.hero-tip{
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  gap: 10px;
+}
+
+.hero-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 2px solid var(--green);
+  background: #fff;
+  color: var(--green);
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform .08s ease, background .15s ease;
+}
+
+.hero-btn:hover{
+  background: rgba(31,93,80,.06);
+  transform: translateY(-1px);
+  color: var(--green);
+}
+
+.hero-illus{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hero-illus img{
+  width: min(420px, 90%);
+  height: auto;
+  filter: drop-shadow(0 18px 30px rgba(0,0,0,.10));
+}
+
+/* =========================
+   PÁGINAS (título + botão)
+========================= */
+
+.page-head{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 10px 0 14px;
+}
+
+.page-title{
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+  color: var(--green);
+  margin: 0;
+}
+
+.page-sub{
+  color: var(--muted);
+  font-size: 13.5px;
+  margin: 4px 0 0;
+}
+
+/* Botão principal (sem brigar com Bootstrap) */
+.btn-brand{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--green), var(--green-2));
+  border: 1px solid rgba(31,93,80,.22);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 18px rgba(0,0,0,.10);
+}
+
+.btn-brand:hover{
+  color: #fff;
+  transform: translateY(-1px);
+  filter: brightness(.97);
+}
+
+/* =========================
+   TABELAS (Bootstrap + toque)
+========================= */
+
+/* Card “clean” */
+.table-card{
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 14px 30px rgba(0,0,0,.08);
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Cabeçalho da tabela */
+.table thead th{
+  background: #f6f4ee;
+  color: var(--green);
+  font-weight: 800;
+  font-size: 13.5px;
+  border-bottom: 1px solid #e1ddd2 !important;
+  padding: 14px 16px;
+  white-space: nowrap;
+}
+
+/* Células */
+.table tbody td{
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+/* Hover suave */
+.table-hover tbody tr:hover{
+  background: rgba(31,93,80,.05);
+}
+
+/* Ações sem quebrar linha */
+td.text-end{ white-space: nowrap; }
+
+/* Badges simples (usa Bootstrap badge, só melhora a cara) */
+.badge-soft-ok{
+  background: rgba(25,135,84,.12);
+  border: 1px solid rgba(25,135,84,.25);
+  color: #198754;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.badge-soft-no{
+  background: rgba(220,53,69,.12);
+  border: 1px solid rgba(220,53,69,.25);
+  color: #dc3545;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* Botões de ação mais “finos” */
+.table .btn.btn-sm{
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 992px){
+  .hero-grid{
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+  .hero-card{ padding: 30px 26px; }
+  .hero-title{ font-size: 44px; }
+  .hero-illus img{ width: min(380px, 92%); }
+}
+
+@media (max-width: 768px){
+  .page-head{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* some colunas “menos essenciais” no celular */
+  .table th:nth-child(3), .table td:nth-child(3),
+  .table th:nth-child(4), .table td:nth-child(4){
+    display: none;
+  }
+}
+
+/* Card grande da página */
+.page-card{
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.08);
+  padding: 26px;
+}
+
+/* Cabeçalho: título + botão */
+.page-card__head{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.page-card__title{
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* Botão pill */
+.btn-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--green);
+  border: 2px solid rgba(31,93,80,.55);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.btn-pill:hover{
+  background: rgba(31,93,80,.06);
+  color: var(--green);
+}
+
+/* Tabela clean */
+.table-clean thead th{
+  border-bottom: 0 !important;
+  color: rgba(34,48,44,.75);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .02em;
+  padding: 16px 12px;
+  text-transform: uppercase;
+}
+
+.table-clean tbody td{
+  border-top: 1px solid rgba(0,0,0,.05) !important;
+  padding: 16px 12px;
+  font-size: 14px;
+}
+
+.table-clean tbody tr:hover{
+  background: rgba(0,0,0,.015);
+}
+
+/* Colunas com largura controlada (pra ficar organizado) */
+.col-id{ width: 80px; }
+.col-ano{ width: 90px; }
+.col-status{ width: 130px; }
+.col-acoes{ width: 120px; }
+
+/* Badges */
+.badge-soft-ok{
+  background: rgba(25,135,84,.12);
+  border: 1px solid rgba(25,135,84,.25);
+  color: #198754;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.badge-soft-no{
+  background: rgba(220,53,69,.12);
+  border: 1px solid rgba(220,53,69,.25);
+  color: #dc3545;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* Botões de ícone (Ações) */
+.icon-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,.15);
+  background: #fff;
+  margin-left: 8px;
+}
+
+.icon-btn i{ font-size: 16px; }
+
+.icon-btn--edit{
+  border-color: rgba(13,110,253,.55);
+  color: #0d6efd;
+}
+
+.icon-btn--edit:hover{
+  background: rgba(13,110,253,.08);
+}
+
+.icon-btn--del{
+  border-color: rgba(220,53,69,.55);
+  color: #dc3545;
+}
+
+.icon-btn--del:hover{
+  background: rgba(220,53,69,.08);
+}
+
+/* Responsivo */
+@media (max-width: 768px){
+  .page-card{ padding: 18px; }
+  .page-card__title{ font-size: 26px; }
+  .col-ano, .col-status{ display: none; }
+}
+
+/* Form dentro do page-card */
+.form-grid{
+  margin-top: 8px;
+}
+
+.form-actions{
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(0,0,0,.06);
+}
+
+/* Inputs mais “premium” sem brigar com bootstrap */
+.form-control{
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.form-label{
+  font-weight: 700;
+  color: rgba(34,48,44,.85);
+}
+

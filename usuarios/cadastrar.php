@@ -1,14 +1,71 @@
-<?php include("../includes/header.php"); ?>
+<?php
+$titulo_pagina = "Cadastrar Usuário";
+include("../includes/header.php");
+?>
 
-<form action="salvar.php" method="post">
-  <input class="form-control mb-2" name="nome" placeholder="Nome">
-  <input class="form-control mb-2" name="email" placeholder="Email">
-  <input class="form-control mb-2" type="password" name="senha" placeholder="Senha">
-  <select class="form-select mb-2" name="perfil">
-    <option value="admin">Admin</option>
-    <option value="leitor">Leitor</option>
-  </select>
-  <button class="btn btn-primary">Salvar</button>
-</form>
+<div class="container my-4">
+  <div class="page-card">
+    <div class="page-card__head">
+      <h2 class="page-card__title m-0">Cadastrar Usuário</h2>
+
+      <a class="btn btn-pill" href="listar.php">
+        <i class="bi bi-arrow-left"></i>
+        Voltar
+      </a>
+    </div>
+
+    <form action="salvar.php" method="post" class="form-grid">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nome</label>
+          <input
+            class="form-control"
+            name="nome"
+            required
+            placeholder="Ex: João da Silva">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input
+            class="form-control"
+            type="email"
+            name="email"
+            required
+            placeholder="exemplo@email.com">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Senha</label>
+          <input
+            class="form-control"
+            type="password"
+            name="senha"
+            required
+            placeholder="••••••••">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Perfil</label>
+          <select class="form-select" name="perfil">
+            <option value="admin">Administrador</option>
+            <option value="leitor">Leitor</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-brand" type="submit">
+          <i class="bi bi-check2"></i>
+          Salvar
+        </button>
+
+        <a class="btn btn-outline-secondary" href="listar.php">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
 
 <?php include("../includes/footer.php"); ?>

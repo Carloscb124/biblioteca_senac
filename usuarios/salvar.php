@@ -9,3 +9,4 @@ VALUES ('{$_POST['nome']}','{$_POST['email']}','$senha','{$_POST['perfil']}')
 ");
 
 header("Location: listar.php");
+?>

@@ -7,7 +7,6 @@ if ($id <= 0) die("ID inválido.");
 mysqli_begin_transaction($conn);
 
 try {
-  // Pega o empréstimo e trava
   $stmt = mysqli_prepare($conn, "SELECT id_livro, devolvido FROM emprestimos WHERE id = ? FOR UPDATE");
   mysqli_stmt_bind_param($stmt, "i", $id);
   mysqli_stmt_execute($stmt);
@@ -15,20 +14,21 @@ try {
   $e = mysqli_fetch_assoc($res);
 
   if (!$e) throw new Exception("Empréstimo não encontrado.");
-  if ((int)$e['devolvido'] === 1) throw new Exception("Esse empréstimo já foi devolvido.");
 
   $id_livro = (int)$e['id_livro'];
+  $devolvido = (int)$e['devolvido'];
 
-  // Atualiza empréstimo
-  $hoje = date('Y-m-d');
-  $stmt = mysqli_prepare($conn, "UPDATE emprestimos SET devolvido = 1, data_devolucao = ? WHERE id = ?");
-  mysqli_stmt_bind_param($stmt, "si", $hoje, $id);
+  // Exclui empréstimo
+  $stmt = mysqli_prepare($conn, "DELETE FROM emprestimos WHERE id = ?");
+  mysqli_stmt_bind_param($stmt, "i", $id);
   mysqli_stmt_execute($stmt);
 
-  // Libera livro
-  $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 1 WHERE id = ?");
-  mysqli_stmt_bind_param($stmt, "i", $id_livro);
-  mysqli_stmt_execute($stmt);
+  // Se estava aberto, libera livro
+  if ($devolvido === 0) {
+    $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 1 WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id_livro);
+    mysqli_stmt_execute($stmt);
+  }
 
   mysqli_commit($conn);
   header("Location: listar.php");

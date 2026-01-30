@@ -8,8 +8,7 @@ $id = (int)($_GET['id'] ?? 0);
 $ok = mysqli_query($conn, "DELETE FROM livros WHERE id=$id");
 
 if (!$ok) {
-  // Se quiser, você pode melhorar essa mensagem depois.
-  // Agora é só pra não dar tela branca.
+ 
   header("Location: listar.php?erro=nao_deu");
   exit;
 }
