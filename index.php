@@ -1,39 +1,155 @@
 <?php
 $titulo_pagina = "Início";
+include("conexao.php");
 include("includes/header.php");
+
+/* KPIs */
+$livros_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros"))['c'];
+$usuarios_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios"))['c'];
+$em_emprestimo = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM emprestimos WHERE devolvido = 0"))['c'];
+
+$atrasados = (int)mysqli_fetch_assoc(mysqli_query(
+  $conn,
+  "SELECT COUNT(*) AS c
+   FROM emprestimos
+   WHERE devolvido = 0
+     AND data_prevista IS NOT NULL
+     AND data_prevista < CURDATE()"
+))['c'];
+
+/* Empréstimos recentes */
+$sql_recent = "
+SELECT
+  e.id,
+  e.data_prevista,
+  e.data_devolucao,
+  e.devolvido,
+  u.nome AS membro,
+  l.titulo AS livro
+FROM emprestimos e
+JOIN usuarios u ON u.id = e.id_usuario
+JOIN livros l ON l.id = e.id_livro
+ORDER BY e.id DESC
+LIMIT 5
+";
+$recentes = mysqli_query($conn, $sql_recent);
+
+$hoje = date('Y-m-d');
 ?>
 
-<section class="hero-wrap">
-  <div class="container hero-grid">
+<div class="container my-4">
 
-    <!-- CARD ESQUERDA -->
-    <div class="hero-card">
-      <h1 class="hero-title">
-        Sistema <span>Biblioteca</span>
-      </h1>
-
-      <p class="hero-sub">
-        Bem-vindo ao Sistema de Gerenciamento. Organização e conhecimento em um só lugar.
+  <!-- HERO / BANNER -->
+  <div class="dash-hero">
+    <div class="dash-hero__text">
+      <h2 class="dash-hero__title">Painel de Controle</h2>
+      <p class="dash-hero__sub">
+        Gerencie seu acervo, acompanhe empréstimos e mantenha tudo organizado.
       </p>
+    </div>
 
-      <hr class="hero-line">
+    <div class="dash-hero__img">
+      <img src="<?= $base ?>/assets/reader.png" alt="Ilustração leitura">
+    </div>
+  </div>
 
-      <p class="hero-tip">
-        <span class="tip-ic">ⓘ</span>
-        Use o menu superior para navegar entre os módulos.
-      </p>
+  <!-- KPIs -->
+  <div class="dash-kpis">
+    <div class="kpi-card">
+      <div class="kpi-ic"><i class="bi bi-book"></i></div>
+      <div class="kpi-num"><?= $livros_total ?></div>
+      <div class="kpi-label">Livros no Acervo</div>
+    </div>
 
-      <a class="btn hero-btn" href="<?= $base ?>/livros/listar.php">
-        <span class="btn-ic">📖</span> Ver Acervo
+    <div class="kpi-card">
+      <div class="kpi-ic"><i class="bi bi-people"></i></div>
+      <div class="kpi-num"><?= $usuarios_total ?></div>
+      <div class="kpi-label">Membros Ativos</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-ic"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="kpi-num"><?= $em_emprestimo ?></div>
+      <div class="kpi-label">Em Empréstimo</div>
+    </div>
+
+    <div class="kpi-card kpi-danger">
+      <div class="kpi-ic"><i class="bi bi-exclamation-circle"></i></div>
+      <div class="kpi-num"><?= $atrasados ?></div>
+      <div class="kpi-label">Em Atraso</div>
+    </div>
+  </div>
+
+  <!-- Recentes -->
+  <div class="dash-section">
+    <div class="dash-section__head">
+      <h3 class="dash-h3">Empréstimos Recentes</h3>
+      <a class="dash-link" href="emprestimos/listar.php">
+        Ver todos <i class="bi bi-arrow-right"></i>
       </a>
     </div>
 
-    <!-- ILUSTRAÇÃO DIREITA -->
-    <div class="hero-illus">
-      <img src="<?= $base ?>/assets/reader.png" alt="Ilustração leitura">
-    </div>
+    <div class="dash-table">
+      <div class="table-responsive">
+        <table class="table table-clean align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Livro</th>
+              <th>Membro</th>
+              <th>Devolução</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if ($recentes && mysqli_num_rows($recentes) > 0) { ?>
+              <?php while ($e = mysqli_fetch_assoc($recentes)) {
 
+                $devolvido = (int)$e['devolvido'];
+                $prevista  = $e['data_prevista'] ?? null;
+                $atrasado  = ($devolvido === 0 && !empty($prevista) && $prevista < $hoje);
+
+              ?>
+                <tr>
+                  <td class="fw-semibold"><?= htmlspecialchars($e['livro']) ?></td>
+                  <td><?= htmlspecialchars($e['membro']) ?></td>
+
+                  <td class="text-muted">
+                    <?php
+                      if ($devolvido === 1) {
+                        echo htmlspecialchars($e['data_devolucao'] ?? '-');
+                      } else {
+                        echo htmlspecialchars($e['data_prevista'] ?? '-');
+                      }
+                    ?>
+                  </td>
+
+                  <td>
+                    <?php if ($devolvido === 1) { ?>
+                      <span class="badge-status badge-done">Devolvido</span>
+                    <?php } elseif ($atrasado) { ?>
+                      <span class="badge-status badge-late">Atrasado</span>
+                    <?php } else { ?>
+                      <span class="badge-status badge-open">Aberto</span>
+                    <?php } ?>
+                  </td>
+                </tr>
+              <?php } ?>
+            <?php } else { ?>
+              <tr>
+                <td colspan="4">
+                  <div class="dash-empty">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Nenhum empréstimo registrado</span>
+                  </div>
+                </td>
+              </tr>
+            <?php } ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-</section>
+
+</div>
 
 <?php include("includes/footer.php"); ?>

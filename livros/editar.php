@@ -29,44 +29,41 @@ if (!$l) { ?>
       </a>
     </div>
 
-    <form action="atualizar.php" method="post" class="form-grid">
+    <form action="atualizar.php" method="post" class="form-grid" autocomplete="off">
       <input type="hidden" name="id" value="<?= (int)$l['id'] ?>">
 
       <div class="row g-3">
         <div class="col-12">
           <label class="form-label">Título</label>
           <input class="form-control" name="titulo" required
-                 value="<?= htmlspecialchars($l['titulo']) ?>"
-                 placeholder="Ex: Dom Casmurro">
+                 value="<?= htmlspecialchars($l['titulo']) ?>">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Autor</label>
           <input class="form-control" name="autor"
-                 value="<?= htmlspecialchars($l['autor'] ?? '') ?>"
-                 placeholder="Ex: Machado de Assis">
+                 value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
         </div>
 
         <div class="col-md-3">
           <label class="form-label">Ano</label>
           <input class="form-control" type="number" name="ano_publicacao" min="0"
-                 value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>"
-                 placeholder="Ex: 1899">
+                 value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
         </div>
 
         <div class="col-md-3">
           <label class="form-label">ISBN</label>
           <input class="form-control" name="ISBN" maxlength="20"
-                 value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>"
-                 placeholder="Ex: 978-85-...">
+                 value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
         </div>
 
         <div class="col-md-4">
-          <label class="form-label">Disponibilidade</label>
+          <label class="form-label">Disponível</label>
           <select class="form-select" name="disponivel">
-            <option value="1" <?= ((int)$l['disponivel'] === 1) ? "selected" : "" ?>>Disponível</option>
-            <option value="0" <?= ((int)$l['disponivel'] === 0) ? "selected" : "" ?>>Indisponível</option>
+            <option value="1" <?= ((int)$l['disponivel'] === 1) ? "selected" : "" ?>>Sim</option>
+            <option value="0" <?= ((int)$l['disponivel'] === 0) ? "selected" : "" ?>>Não</option>
           </select>
+          <div class="form-text">Se houver empréstimo aberto, evite marcar como disponível manualmente.</div>
         </div>
       </div>
 
@@ -76,9 +73,7 @@ if (!$l) { ?>
           Atualizar
         </button>
 
-        <a class="btn btn-outline-secondary" href="listar.php">
-          Cancelar
-        </a>
+        <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
       </div>
     </form>
   </div>

@@ -1,8 +1,13 @@
 <?php
 include("../conexao.php");
+include("../includes/flash.php");
 
 $id = (int)($_GET['id'] ?? 0);
-if ($id <= 0) die("ID inválido.");
+if ($id <= 0) {
+  flash_set('danger', 'Empréstimo inválido.');
+  header("Location: listar.php");
+  exit;
+}
 
 mysqli_begin_transaction($conn);
 
@@ -18,12 +23,11 @@ try {
   $id_livro = (int)$e['id_livro'];
   $devolvido = (int)$e['devolvido'];
 
-  // Exclui empréstimo
   $stmt = mysqli_prepare($conn, "DELETE FROM emprestimos WHERE id = ?");
   mysqli_stmt_bind_param($stmt, "i", $id);
   mysqli_stmt_execute($stmt);
 
-  // Se estava aberto, libera livro
+  // se estava aberto, libera o livro
   if ($devolvido === 0) {
     $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 1 WHERE id = ?");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
@@ -31,11 +35,13 @@ try {
   }
 
   mysqli_commit($conn);
+  flash_set('success', 'Empréstimo excluído com sucesso!');
   header("Location: listar.php");
   exit;
 
 } catch (Exception $e) {
   mysqli_rollback($conn);
-  echo "Erro: " . htmlspecialchars($e->getMessage());
+  flash_set('danger', $e->getMessage());
+  header("Location: listar.php");
+  exit;
 }
-?>

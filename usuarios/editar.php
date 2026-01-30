@@ -29,49 +29,35 @@ if (!$u) { ?>
       </a>
     </div>
 
-    <form action="atualizar.php" method="post" class="form-grid">
+    <form action="atualizar.php" method="post" class="form-grid" autocomplete="off">
       <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
 
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label">Nome</label>
-          <input
-            class="form-control"
-            name="nome"
-            required
-            value="<?= htmlspecialchars($u['nome']) ?>"
-            placeholder="Ex: João da Silva">
+          <input class="form-control" name="nome" required
+                 value="<?= htmlspecialchars($u['nome']) ?>">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Email</label>
-          <input
-            class="form-control"
-            type="email"
-            name="email"
-            required
-            value="<?= htmlspecialchars($u['email']) ?>"
-            placeholder="exemplo@email.com">
+          <input class="form-control" type="email" name="email" required
+                 value="<?= htmlspecialchars($u['email']) ?>">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Perfil</label>
           <select class="form-select" name="perfil">
-            <option value="admin" <?= ($u['perfil'] === 'admin') ? "selected" : "" ?>>Administrador</option>
-            <option value="leitor" <?= ($u['perfil'] === 'leitor') ? "selected" : "" ?>>Leitor</option>
+            <option value="admin" <?= (($u['perfil'] ?? '') === 'admin') ? "selected" : "" ?>>Administrador</option>
+            <option value="leitor" <?= (($u['perfil'] ?? '') === 'leitor') ? "selected" : "" ?>>Leitor</option>
           </select>
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Nova senha (opcional)</label>
-          <input
-            class="form-control"
-            type="password"
-            name="senha"
-            placeholder="Deixe em branco para manter a senha atual">
-          <div class="form-text">
-            Se você não preencher, a senha atual continua a mesma.
-          </div>
+          <input class="form-control" type="password" name="senha"
+                 placeholder="Deixe em branco para manter a senha atual">
+          <div class="form-text">Se não preencher, a senha atual continua a mesma.</div>
         </div>
       </div>
 
@@ -81,9 +67,7 @@ if (!$u) { ?>
           Atualizar
         </button>
 
-        <a class="btn btn-outline-secondary" href="listar.php">
-          Cancelar
-        </a>
+        <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
       </div>
     </form>
   </div>

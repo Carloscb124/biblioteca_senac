@@ -14,7 +14,7 @@ include("../includes/header.php");
       </a>
     </div>
 
-    <form action="salvar.php" method="post" class="form-grid">
+    <form action="salvar.php" method="post" class="form-grid" autocomplete="off">
       <div class="row g-3">
         <div class="col-12">
           <label class="form-label">Título</label>
@@ -43,9 +43,7 @@ include("../includes/header.php");
           Salvar
         </button>
 
-        <a class="btn btn-outline-secondary" href="listar.php">
-          Cancelar
-        </a>
+        <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
       </div>
     </form>
   </div>

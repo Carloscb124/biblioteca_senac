@@ -7,6 +7,7 @@ $sql = "
 SELECT
   e.id,
   e.data_emprestimo,
+  e.data_prevista,
   e.data_devolucao,
   e.devolvido,
   u.nome AS usuario_nome,
@@ -17,6 +18,8 @@ JOIN livros l ON l.id = e.id_livro
 ORDER BY e.id DESC
 ";
 $r = mysqli_query($conn, $sql);
+
+$hoje = date('Y-m-d');
 ?>
 
 <div class="container my-4">
@@ -30,50 +33,77 @@ $r = mysqli_query($conn, $sql);
       </a>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-clean align-middle mb-0">
+    <div class="table-base-wrap">
+      <div class="table-responsive">
+        <table class="table table-base align-middle mb-0">
         <thead>
           <tr>
             <th class="col-id">ID</th>
             <th>Usuário</th>
             <th>Livro</th>
             <th class="col-ano">Empréstimo</th>
+            <th class="col-ano">Prevista</th>
             <th class="col-ano">Devolução</th>
             <th class="col-status">Status</th>
             <th class="text-end col-acoes">Ações</th>
           </tr>
         </thead>
         <tbody>
-          <?php while ($e = mysqli_fetch_assoc($r)) { ?>
+          <?php while ($e = mysqli_fetch_assoc($r)) {
+            $devolvido = (int)$e['devolvido'];
+            $prevista  = $e['data_prevista'] ?? null;
+            $atrasado  = ($devolvido === 0 && !empty($prevista) && $prevista < $hoje);
+          ?>
             <tr>
               <td class="text-muted fw-semibold">#<?= (int)$e['id'] ?></td>
               <td class="fw-semibold"><?= htmlspecialchars($e['usuario_nome']) ?></td>
               <td><?= htmlspecialchars($e['livro_titulo']) ?></td>
+
               <td><?= htmlspecialchars($e['data_emprestimo']) ?></td>
+              <td><?= htmlspecialchars($e['data_prevista'] ?? '-') ?></td>
               <td><?= htmlspecialchars($e['data_devolucao'] ?? '-') ?></td>
 
               <td>
-                <?php if ((int)$e['devolvido'] === 0) { ?>
-                  <span class="badge-soft-ok">Aberto</span>
+                <?php if ($devolvido === 1) { ?>
+                  <span class="badge-status badge-done">
+                    <i class="bi bi-check-circle"></i>
+                    Devolvido
+                  </span>
+
+                <?php } elseif ($atrasado) { ?>
+                  <span class="badge-status badge-late">
+                    <i class="bi bi-exclamation-circle"></i>
+                    Atrasado
+                  </span>
+
                 <?php } else { ?>
-                  <span class="badge-soft-no">Devolvido</span>
+                  <span class="badge-status badge-open">
+                    <i class="bi bi-clock-history"></i>
+                    Aberto
+                  </span>
                 <?php } ?>
               </td>
 
               <td class="text-end">
-                <?php if ((int)$e['devolvido'] === 0) { ?>
+                <?php if ($devolvido === 0) { ?>
                   <a class="icon-btn icon-btn--edit"
-                     href="devolver.php?id=<?= (int)$e['id'] ?>"
-                     onclick="return confirm('Confirmar devolução?')"
-                     title="Devolver">
+                    href="editar.php?id=<?= (int)$e['id'] ?>"
+                    title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  <a class="icon-btn icon-btn--edit"
+                    href="devolver.php?id=<?= (int)$e['id'] ?>"
+                    onclick="return confirm('Confirmar devolução?')"
+                    title="Devolver">
                     <i class="bi bi-check2-circle"></i>
                   </a>
                 <?php } ?>
 
                 <a class="icon-btn icon-btn--del"
-                   href="excluir.php?id=<?= (int)$e['id'] ?>"
-                   onclick="return confirm('Excluir este empréstimo?')"
-                   title="Excluir">
+                  href="excluir.php?id=<?= (int)$e['id'] ?>"
+                  onclick="return confirm('Excluir este empréstimo?')"
+                  title="Excluir">
                   <i class="bi bi-trash"></i>
                 </a>
               </td>

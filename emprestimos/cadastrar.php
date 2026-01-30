@@ -5,6 +5,9 @@ include("../includes/header.php");
 
 $usuarios = mysqli_query($conn, "SELECT id, nome, email FROM usuarios ORDER BY nome ASC");
 $livros = mysqli_query($conn, "SELECT id, titulo, autor FROM livros WHERE disponivel = 1 ORDER BY titulo ASC");
+
+$hoje = date('Y-m-d');
+$previstaPadrao = date('Y-m-d', strtotime('+7 days'));
 ?>
 
 <div class="container my-4">
@@ -47,7 +50,12 @@ $livros = mysqli_query($conn, "SELECT id, titulo, autor FROM livros WHERE dispon
 
         <div class="col-md-4">
           <label class="form-label">Data do empréstimo</label>
-          <input class="form-control" type="date" name="data_emprestimo" required value="<?= date('Y-m-d') ?>">
+          <input class="form-control" type="date" name="data_emprestimo" required value="<?= $hoje ?>">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Devolução prevista</label>
+          <input class="form-control" type="date" name="data_prevista" value="<?= $previstaPadrao ?>">
         </div>
       </div>
 
@@ -56,6 +64,7 @@ $livros = mysqli_query($conn, "SELECT id, titulo, autor FROM livros WHERE dispon
           <i class="bi bi-check2"></i>
           Salvar
         </button>
+
         <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
       </div>
     </form>

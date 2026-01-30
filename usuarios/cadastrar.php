@@ -14,42 +14,28 @@ include("../includes/header.php");
       </a>
     </div>
 
-    <form action="salvar.php" method="post" class="form-grid">
+    <form action="salvar.php" method="post" class="form-grid" autocomplete="off">
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label">Nome</label>
-          <input
-            class="form-control"
-            name="nome"
-            required
-            placeholder="Ex: João da Silva">
+          <input class="form-control" name="nome" required placeholder="Ex: João da Silva">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Email</label>
-          <input
-            class="form-control"
-            type="email"
-            name="email"
-            required
-            placeholder="exemplo@email.com">
+          <input class="form-control" type="email" name="email" required placeholder="exemplo@email.com">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Senha</label>
-          <input
-            class="form-control"
-            type="password"
-            name="senha"
-            required
-            placeholder="••••••••">
+          <input class="form-control" type="password" name="senha" required placeholder="••••••••">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Perfil</label>
           <select class="form-select" name="perfil">
             <option value="admin">Administrador</option>
-            <option value="leitor">Leitor</option>
+            <option value="leitor" selected>Leitor</option>
           </select>
         </div>
       </div>
@@ -60,9 +46,7 @@ include("../includes/header.php");
           Salvar
         </button>
 
-        <a class="btn btn-outline-secondary" href="listar.php">
-          Cancelar
-        </a>
+        <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
       </div>
     </form>
   </div>
