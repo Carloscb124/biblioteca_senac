@@ -632,3 +632,176 @@ td.text-end{ white-space: nowrap; }
 .table.table-base .col-ano{ width: 90px; }
 .table.table-base .col-status{ width: 140px; }
 .table.table-base .col-acoes{ width: 120px; }
+
+/* =========================
+   RELATÓRIOS (painel bonito)
+========================= */
+
+.report-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+}
+
+.report-head__title{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.report-ic{
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(31,93,80,.12);
+  color: var(--green);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 18px;
+}
+
+.report-title{
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
+}
+
+.report-sub{
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.report-hr{
+  border: none;
+  height: 1px;
+  background: rgba(0,0,0,.10);
+  margin: 14px 0 18px;
+}
+
+.report-kpis{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.report-card{
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 22px rgba(0,0,0,.06);
+}
+
+.report-card__top{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  color: rgba(34,48,44,.75);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.report-card__top i{
+  color: var(--green);
+  font-size: 18px;
+}
+
+.report-card__num{
+  font-weight: 900;
+  font-size: 28px;
+  margin-top: 8px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.report-card__foot{
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: rgba(34,48,44,.65);
+}
+
+.report-card--danger{
+  border-color: rgba(220,53,69,.35);
+  background: rgba(220,53,69,.06);
+}
+
+.report-card--danger .report-card__top i,
+.report-card--danger .report-card__num{
+  color: #dc3545;
+}
+
+.report-links{
+  display:grid;
+  gap: 12px;
+}
+
+.report-link{
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: 0 10px 22px rgba(0,0,0,.06);
+}
+
+.report-link:hover{
+  background: rgba(255,255,255,.70);
+}
+
+.report-link__ic{
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(31,93,80,.12);
+  color: var(--green);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 18px;
+}
+
+.report-link__ic--danger{
+  background: rgba(220,53,69,.12);
+  color: #dc3545;
+}
+
+.report-link__txt{
+  display:flex;
+  flex-direction:column;
+  gap: 2px;
+  flex: 1;
+}
+
+.report-link__txt strong{
+  font-weight: 800;
+}
+
+.report-link__txt span{
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.report-link__arrow{
+  color: rgba(34,48,44,.55);
+}
+
+/* Responsivo */
+@media (max-width: 992px){
+  .report-kpis{
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px){
+  .report-kpis{
+    grid-template-columns: 1fr;
+  }
+}
