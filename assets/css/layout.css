@@ -1,0 +1,24 @@
+/* Layout padrão das páginas */
+.page-card{
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.08);
+  padding: 26px;
+}
+
+.page-card__head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.page-card__title{
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--text);
+}

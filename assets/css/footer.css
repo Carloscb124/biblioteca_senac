@@ -1,0 +1,10 @@
+.footer-clean{
+  background: #f6f1e8;
+  border-top: 1px solid rgba(0,0,0,.08);
+}
+
+.footer-clean__inner{
+  text-align: center;
+  padding: 14px 0;
+  color: rgba(34,48,44,.75);
+}

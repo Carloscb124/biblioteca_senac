@@ -1,0 +1,11 @@
+@media (max-width: 992px){
+  .hero-grid{ grid-template-columns: 1fr; gap: 34px; }
+  .hero-card{ padding: 30px 26px; }
+  .hero-title{ font-size: 44px; }
+  .hero-illus img{ width: min(380px, 92%); }
+}
+
+@media (max-width: 576px){
+  .page-card{ padding: 18px; }
+  .page-card__title{ font-size: 26px; }
+}

@@ -3,14 +3,10 @@ $titulo_pagina = "Relatórios";
 include("../conexao.php");
 include("../includes/header.php");
 
-/* KPIs simples */
 $livros_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros"))['c'];
 $livros_disp  = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros WHERE disponivel = 1"))['c'];
-
 $usuarios_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios"))['c'];
-
 $emprestimos_ativos = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM emprestimos WHERE devolvido = 0"))['c'];
-
 $atrasados = (int)mysqli_fetch_assoc(mysqli_query($conn, "
   SELECT COUNT(*) AS c
   FROM emprestimos
@@ -22,7 +18,6 @@ $atrasados = (int)mysqli_fetch_assoc(mysqli_query($conn, "
 
 <div class="container my-4">
 
-  <!-- TÍTULO -->
   <div class="report-head">
     <div class="report-head__title">
       <div class="report-ic"><i class="bi bi-graph-up"></i></div>
@@ -35,46 +30,32 @@ $atrasados = (int)mysqli_fetch_assoc(mysqli_query($conn, "
 
   <hr class="report-hr">
 
-  <!-- KPIs -->
   <div class="report-kpis">
     <div class="report-card">
-      <div class="report-card__top">
-        <i class="bi bi-book"></i>
-        <span>Total de Livros</span>
-      </div>
+      <div class="report-card__top"><i class="bi bi-book"></i><span>Total de Livros</span></div>
       <div class="report-card__num"><?= $livros_total ?></div>
       <div class="report-card__foot"><?= $livros_disp ?> disponíveis</div>
     </div>
 
     <div class="report-card">
-      <div class="report-card__top">
-        <i class="bi bi-people"></i>
-        <span>Membros Cadastrados</span>
-      </div>
+      <div class="report-card__top"><i class="bi bi-people"></i><span>Membros Cadastrados</span></div>
       <div class="report-card__num"><?= $usuarios_total ?></div>
       <div class="report-card__foot"><?= $usuarios_total ?> ativos</div>
     </div>
 
     <div class="report-card">
-      <div class="report-card__top">
-        <i class="bi bi-arrow-repeat"></i>
-        <span>Empréstimos Ativos</span>
-      </div>
+      <div class="report-card__top"><i class="bi bi-arrow-repeat"></i><span>Empréstimos Ativos</span></div>
       <div class="report-card__num"><?= $emprestimos_ativos ?></div>
       <div class="report-card__foot">Em andamento</div>
     </div>
 
     <div class="report-card report-card--danger">
-      <div class="report-card__top">
-        <i class="bi bi-exclamation-triangle"></i>
-        <span>Em Atraso</span>
-      </div>
+      <div class="report-card__top"><i class="bi bi-exclamation-triangle"></i><span>Em Atraso</span></div>
       <div class="report-card__num"><?= $atrasados ?></div>
       <div class="report-card__foot">Requer atenção</div>
     </div>
   </div>
 
-  <!-- ATALHOS / LINKS -->
   <div class="report-links">
     <a class="report-link" href="emprestimos_periodo.php">
       <div class="report-link__ic"><i class="bi bi-calendar2-week"></i></div>

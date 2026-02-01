@@ -1,0 +1,60 @@
+td.text-end{ white-space: nowrap; }
+.col-id{ width: 80px; }
+.col-ano{ width: 90px; }
+.col-status{ width: 130px; }
+.col-acoes{ width: 120px; }
+
+/* tabela clean (listas) */
+.table-clean thead th{
+  background: transparent;
+  border-bottom: 0 !important;
+  color: rgba(34,48,44,.75);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .02em;
+  padding: 16px 12px;
+  text-transform: uppercase;
+}
+
+.table-clean tbody td{
+  border-top: 1px solid rgba(0,0,0,.05) !important;
+  padding: 16px 12px;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.table-clean tbody tr:hover{ background: rgba(0,0,0,.015); }
+
+/* tabela base (dashboard/relatórios) */
+.table-base-wrap{
+  background: #fbf8f2;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(0,0,0,.05);
+}
+
+.table.table-base thead th{
+  background: #f4eee4 !important;
+  color: rgba(34,48,44,.75) !important;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 16px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.06) !important;
+  white-space: nowrap;
+}
+
+.table.table-base tbody td{
+  padding: 16px 14px;
+  font-size: 14px;
+  color: #2b2b2b;
+  border-top: 1px solid rgba(0,0,0,.06) !important;
+  vertical-align: middle;
+  background: #fbf8f2 !important;
+}
+
+.table.table-base tbody tr:hover td{
+  background: #f6f0e6 !important;
+}
