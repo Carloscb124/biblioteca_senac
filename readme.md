@@ -57,8 +57,6 @@ Projeto desenvolvido no **SENAC**, estruturado também para **portfólio profiss
 
 ## 🧩 Estrutura do Projeto
 
-> Estrutura corrigida considerando `conexao.php` na raiz.
-
 ```text
 biblioteca_senac/
 │
