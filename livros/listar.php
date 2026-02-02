@@ -1,5 +1,6 @@
 <?php
 $titulo_pagina = "Livros";
+include("auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 

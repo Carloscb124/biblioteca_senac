@@ -83,6 +83,23 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
           </li>
 
         </ul>
+
+        <!-- BLOCO DO USUÁRIO LOGADO (CANTO DIREITO) -->
+        <?php if (isset($_SESSION['usuario_id'])): ?>
+          <div class="d-flex align-items-center gap-3 ms-lg-4">
+
+            <div class="user-pill" title="<?= htmlspecialchars($_SESSION['usuario_email'] ?? '') ?>">
+              <span class="user-dot"></span>
+              <?= htmlspecialchars($_SESSION['usuario_nome'] ?? ($_SESSION['usuario_email'] ?? 'Usuário')) ?>
+            </div>
+
+            <a href="<?= $base ?>/auth/logout.php" class="logout-btn" title="Sair">
+              <i class="bi bi-box-arrow-right"></i> Sair
+            </a>
+
+          </div>
+        <?php endif; ?>
+
       </div>
     </div>
   </nav>
