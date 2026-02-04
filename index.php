@@ -84,7 +84,7 @@ $hoje = date('Y-m-d');
   <!-- Recentes -->
   <div class="dash-section">
     <div class="dash-section__head">
-      <h3 class="dash-h3">Empréstimos Recentes</h3>
+      <h3 class="dash-h3">Histórico de Emprestimos</h3>
       <a class="dash-link" href="emprestimos/listar.php">
         Ver todos <i class="bi bi-arrow-right"></i>
       </a>

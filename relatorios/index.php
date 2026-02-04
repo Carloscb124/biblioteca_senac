@@ -1,6 +1,6 @@
 <?php
 $titulo_pagina = "Relatórios";
-include("auth/auth_guard.php");
+include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
@@ -93,7 +93,19 @@ $atrasados = (int)mysqli_fetch_assoc(mysqli_query($conn, "
       </div>
       <i class="bi bi-chevron-right report-link__arrow"></i>
     </a>
+
+    <a class="report-link" href="<?= $base ?>/relatorios/csv/index.php">
+      <div class="report-link__ic"><i class="bi bi-filetype-csv"></i></div>
+      <div class="report-link__txt">
+        <strong>Importar / Exportar CSV</strong>
+        <span>Gerencie acervo e histórico via planilha.</span>
+      </div>
+      <i class="bi bi-chevron-right report-link__arrow"></i>
+    </a>
+
   </div>
+
+
 
 </div>
 

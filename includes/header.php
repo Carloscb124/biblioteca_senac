@@ -49,35 +49,35 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
 
           <li class="nav-item">
             <a class="nav-link <?= ($path === $base . '/index.php' || $path === $base . '/') ? 'active' : '' ?>"
-               href="<?= $base ?>/index.php">
+              href="<?= $base ?>/index.php">
               <i class="bi bi-house"></i> Início
             </a>
           </li>
 
           <li class="nav-item">
             <a class="nav-link <?= (strpos($path, $base . '/livros') !== false) ? 'active' : '' ?>"
-               href="<?= $base ?>/livros/listar.php">
+              href="<?= $base ?>/livros/listar.php">
               <i class="bi bi-book"></i> Acervo
             </a>
           </li>
 
           <li class="nav-item">
             <a class="nav-link <?= (strpos($path, $base . '/usuarios') !== false) ? 'active' : '' ?>"
-               href="<?= $base ?>/usuarios/listar.php">
+              href="<?= $base ?>/usuarios/listar.php">
               <i class="bi bi-people"></i> Usuários
             </a>
           </li>
 
           <li class="nav-item">
             <a class="nav-link <?= (strpos($path, $base . '/emprestimos') !== false) ? 'active' : '' ?>"
-               href="<?= $base ?>/emprestimos/listar.php">
+              href="<?= $base ?>/emprestimos/listar.php">
               <i class="bi bi-arrow-repeat"></i> Empréstimos
             </a>
           </li>
 
           <li class="nav-item">
             <a class="nav-link <?= (strpos($path, $base . '/relatorios') !== false) ? 'active' : '' ?>"
-               href="<?= $base ?>/relatorios/index.php">
+              href="<?= $base ?>/relatorios/index.php">
               <i class="bi bi-graph-up"></i> Relatórios
             </a>
           </li>
@@ -85,20 +85,25 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
         </ul>
 
         <!-- BLOCO DO USUÁRIO LOGADO (CANTO DIREITO) -->
-        <?php if (isset($_SESSION['usuario_id'])): ?>
-          <div class="d-flex align-items-center gap-3 ms-lg-4">
+        <?php if (!empty($_SESSION['auth'])): ?>
+          <div class="header-user ms-lg-3">
 
-            <div class="user-pill" title="<?= htmlspecialchars($_SESSION['usuario_email'] ?? '') ?>">
+            <span class="user-chip" title="<?= htmlspecialchars($_SESSION['auth']['email'] ?? '') ?>">
               <span class="user-dot"></span>
-              <?= htmlspecialchars($_SESSION['usuario_nome'] ?? ($_SESSION['usuario_email'] ?? 'Usuário')) ?>
-            </div>
+              <span class="user-name"><?= htmlspecialchars($_SESSION['auth']['nome']) ?></span>
+              <!-- <?php if (!empty($_SESSION['auth']['cargo'])): ?>
+                <span class="user-role"><?= htmlspecialchars($_SESSION['auth']['cargo']) ?></span>
+              <?php endif; ?> -->
+            </span>
 
-            <a href="<?= $base ?>/auth/logout.php" class="logout-btn" title="Sair">
-              <i class="bi bi-box-arrow-right"></i> Sair
+            <a href="<?= $base ?>/auth/sair.php" class="logout-btn" title="Sair do sistema">
+              <i class="bi bi-box-arrow-right"></i>
+              <span class="d-none d-md-inline">Sair</span>
             </a>
 
           </div>
         <?php endif; ?>
+
 
       </div>
     </div>

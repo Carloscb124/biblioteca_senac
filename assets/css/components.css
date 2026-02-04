@@ -23,7 +23,7 @@
   padding:10px 14px;
   border-radius:12px;
   background: linear-gradient(180deg, var(--green), var(--green-2));
-  border: 1px solid rgba(31,93,80,.22);
+  border: 1px solid #1F5D50;
   color:#fff;
   font-weight:800;
   text-decoration:none;
@@ -51,8 +51,8 @@
 .icon-btn i{ font-size: 16px; }
 
 .icon-btn--edit{
-  border-color: rgba(13,110,253,.55);
-  color: #0d6efd;
+  border-color: #1F5D50;
+  color: #1F5D50;
 }
 .icon-btn--edit:hover{ background: rgba(13,110,253,.08); }
 
@@ -153,4 +153,42 @@
   background: rgba(220,53,69,.08);
   color: #dc3545;
   border-color: rgba(220,53,69,.4);
+}
+
+/* ===== PAGINAÇÃO VERDE ===== */
+
+.pagination .page-link {
+  color: var(--green);
+  border-color: rgba(31, 93, 80, 0.25);
+  background-color: #fff;
+  font-weight: 500;
+}
+
+.pagination .page-link:hover {
+  background-color: rgba(31, 93, 80, 0.08);
+  color: var(--green);
+}
+
+/* Página ativa */
+.pagination .page-item.active .page-link {
+  background-color: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Desabilitado */
+.pagination .page-item.disabled .page-link {
+  color: #9aa5a1;
+  background-color: #f1f3f2;
+  border-color: #e1e5e3;
+}
+
+/* Arredondar levemente */
+.pagination {
+  gap: 4px;
+}
+
+.pagination .page-link {
+  border-radius: 8px;
 }
