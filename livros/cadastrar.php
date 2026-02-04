@@ -33,7 +33,14 @@ include("../includes/header.php");
 
         <div class="col-md-3">
           <label class="form-label">ISBN</label>
-          <input class="form-control" name="ISBN" maxlength="20" placeholder="Ex: 978-85-...">
+          <input
+            class="form-control"
+            name="ISBN"
+            id="isbn"
+            maxlength="17"
+            placeholder="978-65-5501-123-4"
+            autocomplete="off"
+            value="<?= isset($l) ? htmlspecialchars($l['ISBN'] ?? '') : '' ?>">
         </div>
       </div>
 
@@ -64,6 +71,47 @@ include("../includes/header.php");
     </form>
   </div>
 </div>
+
+<script>
+  const isbnInput = document.getElementById('isbn');
+
+  function onlyDigits(v) {
+    return (v || '').replace(/\D/g, '');
+  }
+
+  function formatISBN(value) {
+    const digits = onlyDigits(value);
+
+    // ISBN-10
+    if (digits.length <= 10) {
+      // padrão simples: X-XXX-XXXXX-X
+      let out = digits;
+      if (digits.length > 1) out = digits.slice(0,1) + '-' + digits.slice(1);
+      if (digits.length > 4) out = out.slice(0,5) + '-' + digits.slice(4);
+      if (digits.length > 9) out = out.slice(0,11) + '-' + digits.slice(9);
+      return out;
+    }
+
+    // ISBN-13
+    let out = digits.slice(0,13);
+    // 978-65-5501-123-4 (modelo BR comum)
+    out = out.replace(
+      /^(\d{3})(\d{0,2})(\d{0,4})(\d{0,3})(\d{0,1}).*/,
+      (_, a, b, c, d, e) =>
+        [a, b, c, d, e].filter(Boolean).join('-')
+    );
+    return out;
+  }
+
+  if (isbnInput) {
+    isbnInput.addEventListener('input', () => {
+      const pos = isbnInput.selectionStart;
+      isbnInput.value = formatISBN(isbnInput.value);
+      isbnInput.setSelectionRange(pos, pos);
+    });
+  }
+</script>
+
 
 <script>
   const inputCDD = document.getElementById("cdd");

@@ -4,7 +4,7 @@ include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
-$r = mysqli_query($conn, "SELECT * FROM usuarios ORDER BY id DESC");
+$r = mysqli_query($conn, "SELECT id, nome, cpf, email, telefone, ativo FROM usuarios ORDER BY id DESC");
 ?>
 
 <div class="container my-4">
@@ -26,49 +26,69 @@ $r = mysqli_query($conn, "SELECT * FROM usuarios ORDER BY id DESC");
             <tr>
               <th class="col-id">ID</th>
               <th>Nome</th>
+              <th>CPF</th>
               <th>Email</th>
-              <th class="col-status">Perfil</th>
+              <th>Telefone</th>
+              <th>Status</th>
               <th class="text-end col-acoes">Ações</th>
             </tr>
           </thead>
+
           <tbody>
-            <?php while ($u = mysqli_fetch_assoc($r)) { ?>
+            <?php while ($u = mysqli_fetch_assoc($r)) {
+              $id = (int)$u['id'];
+              $ativo = ((int)$u['ativo'] === 1);
+
+              $emailTxt = !empty($u['email']) ? htmlspecialchars($u['email']) : "<span class='text-muted'>-</span>";
+              $telTxt   = !empty($u['telefone']) ? htmlspecialchars($u['telefone']) : "<span class='text-muted'>-</span>";
+            ?>
               <tr>
-                <td class="text-muted fw-semibold">#<?= (int)$u['id'] ?></td>
-
+                <td class="text-muted fw-semibold">#<?= $id ?></td>
                 <td class="fw-semibold"><?= htmlspecialchars($u['nome']) ?></td>
-
-                <td class="text-muted"><?= htmlspecialchars($u['email']) ?></td>
+                <td class="text-muted"><?= htmlspecialchars($u['cpf']) ?></td>
+                <td><?= $emailTxt ?></td>
+                <td><?= $telTxt ?></td>
 
                 <td>
-                  <?php if (($u['perfil'] ?? '') === 'admin') { ?>
-                    <span class="badge-soft-ok">Admin</span>
-                  <?php } else { ?>
-                    <span class="badge-soft-no">Leitor</span>
-                  <?php } ?>
+                  <?= $ativo
+                    ? "<span class='badge-soft-ok'>Ativo</span>"
+                    : "<span class='badge-soft-no'>Desativado</span>"
+                  ?>
                 </td>
 
                 <td class="text-end">
+                  <!-- EDITAR sempre -->
                   <a class="icon-btn icon-btn--edit"
-                    href="editar.php?id=<?= (int)$u['id'] ?>"
+                    href="editar.php?id=<?= $id ?>"
                     title="Editar">
                     <i class="bi bi-pencil"></i>
                   </a>
 
-                  <a class="icon-btn icon-btn--del"
-                    href="excluir.php?id=<?= (int)$u['id'] ?>"
-                    onclick="return confirm('Excluir este usuário?')"
-                    title="Excluir">
-                    <i class="bi bi-trash"></i>
-                  </a>
+                  <?php if ($ativo) { ?>
+                    <!-- DESATIVAR -->
+                    <a class="icon-btn icon-btn--del"
+                      href="excluir.php?id=<?= $id ?>"
+                      onclick="return confirm('Desativar este leitor? Ele não será apagado, apenas desativado.')"
+                      title="Desativar">
+                      <i class="bi bi-person-x"></i>
+                    </a>
+                  <?php } else { ?>
+                    <!-- REATIVAR -->
+                    <a class="icon-btn icon-btn--ok"
+                      href="reativar.php?id=<?= $id ?>"
+                      onclick="return confirm('Reativar este leitor?')"
+                      title="Reativar">
+                      <i class="bi bi-person-check"></i>
+                    </a>
+                  <?php } ?>
                 </td>
               </tr>
             <?php } ?>
           </tbody>
+
         </table>
       </div>
-
     </div>
   </div>
 
-  <?php include("../includes/footer.php"); ?>
+<?php include("../includes/footer.php"); ?>
