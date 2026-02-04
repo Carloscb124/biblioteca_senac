@@ -1,12 +1,12 @@
 <?php
-$titulo_pagina = "Cadastrar Usuário";
+$titulo_pagina = "Cadastrar Leitor";
 include("../includes/header.php");
 ?>
 
 <div class="container my-4">
   <div class="page-card">
     <div class="page-card__head">
-      <h2 class="page-card__title m-0">Cadastrar Usuário</h2>
+      <h2 class="page-card__title m-0">Cadastrar Leitor</h2>
 
       <a class="btn btn-pill" href="listar.php">
         <i class="bi bi-arrow-left"></i>
@@ -41,7 +41,7 @@ include("../includes/header.php");
       </div>
 
       <div class="form-actions">
-        <button class="btn btn-brand" type="submit">
+        <button class="btn btn-pill" type="submit">
           <i class="bi bi-check2"></i>
           Salvar
         </button>

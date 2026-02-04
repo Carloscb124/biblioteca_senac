@@ -12,25 +12,20 @@ if ($id_usuario <= 0 || $id_livro <= 0 || $data_emp === '') {
   header("Location: cadastrar.php");
   exit;
 }
-
 if ($data_prev === '') $data_prev = null;
 
 mysqli_begin_transaction($conn);
 
 try {
-  // trava e confere disponibilidade
-  $stmt = mysqli_prepare($conn, "SELECT disponivel FROM livros WHERE id = ? FOR UPDATE");
+  // trava e confere qtd disponível
+  $stmt = mysqli_prepare($conn, "SELECT qtd_disp FROM livros WHERE id = ? FOR UPDATE");
   mysqli_stmt_bind_param($stmt, "i", $id_livro);
   mysqli_stmt_execute($stmt);
   $res = mysqli_stmt_get_result($stmt);
   $livro = mysqli_fetch_assoc($res);
 
-  if (!$livro) {
-    throw new Exception("Livro não encontrado.");
-  }
-  if ((int)$livro['disponivel'] !== 1) {
-    throw new Exception("Livro indisponível no momento.");
-  }
+  if (!$livro) throw new Exception("Livro não encontrado.");
+  if ((int)$livro['qtd_disp'] <= 0) throw new Exception("Sem exemplares disponíveis no momento.");
 
   // cria empréstimo
   $stmt = mysqli_prepare($conn, "
@@ -40,8 +35,13 @@ try {
   mysqli_stmt_bind_param($stmt, "iiss", $id_usuario, $id_livro, $data_emp, $data_prev);
   mysqli_stmt_execute($stmt);
 
-  // marca livro como indisponível
-  $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 0 WHERE id = ?");
+  // baixa 1 exemplar e recalcula disponível
+  $stmt = mysqli_prepare($conn, "
+    UPDATE livros
+    SET qtd_disp = qtd_disp - 1,
+        disponivel = IF(qtd_disp - 1 > 0, 1, 0)
+    WHERE id = ?
+  ");
   mysqli_stmt_bind_param($stmt, "i", $id_livro);
   mysqli_stmt_execute($stmt);
 

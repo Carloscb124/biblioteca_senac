@@ -27,9 +27,14 @@ try {
   mysqli_stmt_bind_param($stmt, "i", $id);
   mysqli_stmt_execute($stmt);
 
-  // se estava aberto, libera o livro
+  // se estava aberto, devolve 1 exemplar
   if ($devolvido === 0) {
-    $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 1 WHERE id = ?");
+    $stmt = mysqli_prepare($conn, "
+      UPDATE livros
+      SET qtd_disp = LEAST(qtd_disp + 1, qtd_total),
+          disponivel = IF(LEAST(qtd_disp + 1, qtd_total) > 0, 1, 0)
+      WHERE id = ?
+    ");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
     mysqli_stmt_execute($stmt);
   }

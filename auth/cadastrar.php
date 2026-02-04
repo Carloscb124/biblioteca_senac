@@ -70,14 +70,6 @@ $flash = flash_get();
             <input class="form-control" type="password" name="senha" required placeholder="••••••••">
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">Cargo</label>
-            <select class="form-select" name="cargo">
-              <option value="funcionario" selected>Funcionário</option>
-              <option value="admin">Administrador</option>
-            </select>
-          </div>
-
           <button class="auth-btn" type="submit">
             <i class="bi bi-plus-lg"></i>
             Cadastrar-se

@@ -64,7 +64,7 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
           <li class="nav-item">
             <a class="nav-link <?= (strpos($path, $base . '/usuarios') !== false) ? 'active' : '' ?>"
               href="<?= $base ?>/usuarios/listar.php">
-              <i class="bi bi-people"></i> Usuários
+              <i class="bi bi-people"></i> Leitores
             </a>
           </li>
 

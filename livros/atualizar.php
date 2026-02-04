@@ -8,7 +8,7 @@ $titulo = trim($_POST['titulo'] ?? '');
 $autor  = trim($_POST['autor'] ?? '');
 $anoRaw = $_POST['ano_publicacao'] ?? '';
 $isbn   = trim($_POST['ISBN'] ?? '');
-$disp   = (int)($_POST['disponivel'] ?? 1);
+$qtd_total = (int)($_POST['qtd_total'] ?? 1);
 
 $ano = null;
 if ($anoRaw !== '' && is_numeric($anoRaw)) {
@@ -27,14 +27,40 @@ if ($titulo === '') {
   exit;
 }
 
-$disp = ($disp === 1) ? 1 : 0;
+if ($qtd_total < 1) {
+  flash_set('danger', 'A quantidade de exemplares deve ser no mínimo 1.');
+  header("Location: editar.php?id=$id");
+  exit;
+}
 
+/*
+  Atualiza qtd_total e ajusta qtd_disp caso o total diminua.
+  disponivel vira automático: se qtd_disp > 0 -> 1, senão 0
+*/
 $stmt = mysqli_prepare($conn, "
   UPDATE livros
-  SET titulo = ?, autor = ?, ano_publicacao = ?, ISBN = ?, disponivel = ?
+  SET titulo = ?,
+      autor = ?,
+      ano_publicacao = ?,
+      ISBN = ?,
+      qtd_total = ?,
+      qtd_disp = LEAST(qtd_disp, ?),
+      disponivel = IF(LEAST(qtd_disp, ?) > 0, 1, 0)
   WHERE id = ?
 ");
-mysqli_stmt_bind_param($stmt, "ssisii", $titulo, $autor, $ano, $isbn, $disp, $id);
+
+mysqli_stmt_bind_param(
+  $stmt,
+  "ssissiii",
+  $titulo,
+  $autor,
+  $ano,
+  $isbn,
+  $qtd_total,
+  $qtd_total,
+  $qtd_total,
+  $id
+);
 
 if (mysqli_stmt_execute($stmt)) {
   flash_set('success', 'Livro atualizado com sucesso!');

@@ -5,7 +5,18 @@ include("../includes/header.php");
 
 $id = (int)($_GET['id'] ?? 0);
 
-$stmt = mysqli_prepare($conn, "SELECT * FROM livros WHERE id = ?");
+/*
+  Busca o livro + dados do CDD
+*/
+$stmt = mysqli_prepare($conn, "
+  SELECT
+    l.*,
+    c.codigo AS cdd_codigo,
+    c.descricao AS cdd_descricao
+  FROM livros l
+  LEFT JOIN cdd c ON c.id = l.categoria
+  WHERE l.id = ?
+");
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
@@ -15,7 +26,8 @@ if (!$l) { ?>
   <div class="container my-4">
     <div class="alert alert-danger mb-0">Livro não encontrado.</div>
   </div>
-  <?php include("../includes/footer.php"); exit; ?>
+  <?php include("../includes/footer.php");
+  exit; ?>
 <?php } ?>
 
 <div class="container my-4">
@@ -36,25 +48,48 @@ if (!$l) { ?>
         <div class="col-12">
           <label class="form-label">Título</label>
           <input class="form-control" name="titulo" required
-                 value="<?= htmlspecialchars($l['titulo']) ?>">
+            value="<?= htmlspecialchars($l['titulo']) ?>">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Autor</label>
           <input class="form-control" name="autor"
-                 value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
+            value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
         </div>
 
         <div class="col-md-3">
           <label class="form-label">Ano</label>
           <input class="form-control" type="number" name="ano_publicacao" min="0"
-                 value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
+            value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
         </div>
 
         <div class="col-md-3">
           <label class="form-label">ISBN</label>
           <input class="form-control" name="ISBN" maxlength="20"
-                 value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
+            value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
+        </div>
+
+        <!-- CDD -->
+        <div class="col-12 position-relative">
+          <label class="form-label">CDD (Categoria)</label>
+
+          <input type="text" id="cdd" class="form-control"
+            placeholder="Digite o código ou área"
+            autocomplete="off"
+            value="<?= htmlspecialchars(
+              ($l['cdd_codigo'] && $l['cdd_descricao'])
+                ? $l['cdd_codigo'].' - '.$l['cdd_descricao']
+                : ''
+            ) ?>">
+
+          <input type="hidden" name="categoria" id="categoria"
+            value="<?= (int)($l['categoria'] ?? 0) ?>">
+
+          <div id="resultadoCDD"
+               class="list-group position-absolute w-100"
+               style="z-index:1050"></div>
+
+          <div class="form-text">Clique numa sugestão para alterar a categoria.</div>
         </div>
 
         <div class="col-md-4">
@@ -63,7 +98,6 @@ if (!$l) { ?>
             <option value="1" <?= ((int)$l['disponivel'] === 1) ? "selected" : "" ?>>Sim</option>
             <option value="0" <?= ((int)$l['disponivel'] === 0) ? "selected" : "" ?>>Não</option>
           </select>
-          <div class="form-text">Se houver empréstimo aberto, evite marcar como disponível manualmente.</div>
         </div>
       </div>
 
@@ -78,5 +112,44 @@ if (!$l) { ?>
     </form>
   </div>
 </div>
+
+<script>
+  const inputCDD = document.getElementById("cdd");
+  const resultado = document.getElementById("resultadoCDD");
+  const hidden = document.getElementById("categoria");
+
+  function limpar() {
+    resultado.innerHTML = "";
+  }
+
+  inputCDD.addEventListener("keyup", () => {
+    const q = inputCDD.value.trim();
+    hidden.value = ""; // se digitar, ainda não escolheu
+
+    if (q.length < 2) {
+      limpar();
+      return;
+    }
+
+    fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
+      .then(res => res.text())
+      .then(html => resultado.innerHTML = html)
+      .catch(() => limpar());
+  });
+
+  resultado.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-id]");
+    if (!item) return;
+
+    inputCDD.value = item.dataset.text;
+    hidden.value = item.dataset.id;
+    limpar();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target === inputCDD || resultado.contains(e.target)) return;
+    limpar();
+  });
+</script>
 
 <?php include("../includes/footer.php"); ?>

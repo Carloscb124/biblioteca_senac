@@ -48,6 +48,7 @@ $q = trim($_GET['q'] ?? '');
               <th class="col-id">ID</th>
               <th>Título</th>
               <th>Autor</th>
+              <th>Categoria (CDD)</th>
               <th class="col-ano">Ano</th>
               <th>ISBN</th>
               <th class="col-status">Disponível</th>
@@ -57,7 +58,7 @@ $q = trim($_GET['q'] ?? '');
 
           <tbody id="booksTbody">
             <tr>
-              <td colspan="7" class="text-center text-muted py-4">Carregando...</td>
+              <td colspan="8" class="text-center text-muted py-4">Carregando...</td>
             </tr>
           </tbody>
 
@@ -65,7 +66,7 @@ $q = trim($_GET['q'] ?? '');
       </div>
     </div>
 
-    <!-- PAGINAÇÃO (vai ser preenchida via JS) -->
+    <!-- PAGINAÇÃO -->
     <div id="booksPagination" class="mt-3"></div>
 
   </div>
@@ -81,7 +82,7 @@ $q = trim($_GET['q'] ?? '');
   function renderEmpty() {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center text-muted py-4">
+        <td colspan="8" class="text-center text-muted py-4">
           Nenhum livro encontrado.
         </td>
       </tr>
@@ -96,7 +97,7 @@ $q = trim($_GET['q'] ?? '');
     if (!resp.ok) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="text-center text-danger py-4">
+          <td colspan="8" class="text-center text-danger py-4">
             Erro ao carregar. Tente novamente.
           </td>
         </tr>
@@ -113,7 +114,7 @@ $q = trim($_GET['q'] ?? '');
 
     pagWrap.innerHTML = data.pagination_html || "";
 
-    // Intercepta cliques na paginação (sem reload)
+    // paginação sem reload
     pagWrap.querySelectorAll("[data-page]").forEach(a => {
       a.addEventListener("click", (e) => {
         e.preventDefault();
@@ -123,7 +124,7 @@ $q = trim($_GET['q'] ?? '');
     });
   }
 
-  // Debounce na busca
+  // debounce da busca
   input.addEventListener("input", () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
@@ -131,7 +132,7 @@ $q = trim($_GET['q'] ?? '');
     }, 250);
   });
 
-  // Carrega inicial
+  // carga inicial
   fetchBooks({ q: input.value.trim(), p: 1 });
 </script>
 

@@ -29,25 +29,40 @@ try {
   if (!$emp) throw new Exception("Empréstimo não encontrado.");
   if ((int)$emp['devolvido'] === 1) throw new Exception("Empréstimo devolvido não pode ser editado.");
 
-  // se mudou livro: liberar antigo e travar novo
+  // se mudou livro: devolve 1 no antigo e pega 1 do novo
   if ($id_livro !== $id_livro_atual) {
-    // trava e verifica novo livro disponível
-    $stmt = mysqli_prepare($conn, "SELECT disponivel FROM livros WHERE id = ? FOR UPDATE");
+    // trava antigo
+    $stmt = mysqli_prepare($conn, "SELECT qtd_disp, qtd_total FROM livros WHERE id = ? FOR UPDATE");
+    mysqli_stmt_bind_param($stmt, "i", $id_livro_atual);
+    mysqli_stmt_execute($stmt);
+    $old = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    if (!$old) throw new Exception("Livro antigo não encontrado.");
+
+    // trava novo e confere disponibilidade
+    $stmt = mysqli_prepare($conn, "SELECT qtd_disp FROM livros WHERE id = ? FOR UPDATE");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
     mysqli_stmt_execute($stmt);
-    $res = mysqli_stmt_get_result($stmt);
-    $novo = mysqli_fetch_assoc($res);
-
+    $novo = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     if (!$novo) throw new Exception("Novo livro não encontrado.");
-    if ((int)$novo['disponivel'] !== 1) throw new Exception("Novo livro está indisponível.");
+    if ((int)$novo['qtd_disp'] <= 0) throw new Exception("Novo livro sem exemplares disponíveis.");
 
-    // libera o antigo
-    $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 1 WHERE id = ?");
+    // devolve 1 pro antigo
+    $stmt = mysqli_prepare($conn, "
+      UPDATE livros
+      SET qtd_disp = LEAST(qtd_disp + 1, qtd_total),
+          disponivel = IF(LEAST(qtd_disp + 1, qtd_total) > 0, 1, 0)
+      WHERE id = ?
+    ");
     mysqli_stmt_bind_param($stmt, "i", $id_livro_atual);
     mysqli_stmt_execute($stmt);
 
-    // trava o novo
-    $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 0 WHERE id = ?");
+    // pega 1 do novo
+    $stmt = mysqli_prepare($conn, "
+      UPDATE livros
+      SET qtd_disp = qtd_disp - 1,
+          disponivel = IF(qtd_disp - 1 > 0, 1, 0)
+      WHERE id = ?
+    ");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
     mysqli_stmt_execute($stmt);
   }

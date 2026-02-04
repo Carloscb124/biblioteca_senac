@@ -1,5 +1,5 @@
 <?php
-$titulo_pagina = "Usuários";
+$titulo_pagina = "Leitores";
 include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
@@ -10,11 +10,11 @@ $r = mysqli_query($conn, "SELECT * FROM usuarios ORDER BY id DESC");
 <div class="container my-4">
   <div class="page-card">
     <div class="page-card__head">
-      <h2 class="page-card__title">Lista de Usuários</h2>
+      <h2 class="page-card__title">Lista de Leitores</h2>
 
       <a class="btn btn-pill" href="cadastrar.php">
         <i class="bi bi-plus-lg"></i>
-        Novo Usuário
+        Novo Leitor
       </a>
     </div>
 

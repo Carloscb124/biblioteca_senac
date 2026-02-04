@@ -28,7 +28,13 @@ try {
   mysqli_stmt_bind_param($stmt, "si", $hoje, $id);
   mysqli_stmt_execute($stmt);
 
-  $stmt = mysqli_prepare($conn, "UPDATE livros SET disponivel = 1 WHERE id = ?");
+  // devolve 1 exemplar (sem passar do total) e recalcula disponível
+  $stmt = mysqli_prepare($conn, "
+    UPDATE livros
+    SET qtd_disp = LEAST(qtd_disp + 1, qtd_total),
+        disponivel = IF(LEAST(qtd_disp + 1, qtd_total) > 0, 1, 0)
+    WHERE id = ?
+  ");
   mysqli_stmt_bind_param($stmt, "i", $id_livro);
   mysqli_stmt_execute($stmt);
 

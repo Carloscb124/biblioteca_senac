@@ -4,7 +4,12 @@ include("../conexao.php");
 include("../includes/header.php");
 
 $usuarios = mysqli_query($conn, "SELECT id, nome, email FROM usuarios ORDER BY nome ASC");
-$livros = mysqli_query($conn, "SELECT id, titulo, autor FROM livros WHERE disponivel = 1 ORDER BY titulo ASC");
+$livros = mysqli_query($conn, "
+  SELECT id, titulo, autor, qtd_disp, qtd_total
+  FROM livros
+  WHERE qtd_disp > 0
+  ORDER BY titulo ASC
+");
 
 $hoje = date('Y-m-d');
 $previstaPadrao = date('Y-m-d', strtotime('+7 days'));
@@ -41,31 +46,31 @@ $previstaPadrao = date('Y-m-d', strtotime('+7 days'));
             <option value="">Selecione...</option>
             <?php while ($l = mysqli_fetch_assoc($livros)) { ?>
               <option value="<?= (int)$l['id'] ?>">
-                <?= htmlspecialchars($l['titulo']) ?><?= !empty($l['autor']) ? " - " . htmlspecialchars($l['autor']) : "" ?>
+                <?= htmlspecialchars($l['titulo']) ?>
+                <?= !empty($l['autor']) ? " - " . htmlspecialchars($l['autor']) : "" ?>
+                (<?= (int)$l['qtd_disp'] ?>/<?= (int)$l['qtd_total'] ?>)
               </option>
             <?php } ?>
           </select>
-          <div class="form-text">Se não aparecer livro, é porque todos estão emprestados.</div>
+          <div class="form-text">Se não aparecer livro, é porque todos os exemplares estão emprestados.</div>
         </div>
 
         <div class="col-md-4">
           <label class="form-label">Data do empréstimo</label>
-          <input class="form-control" type="date" name="data_emprestimo" required value="<?= $hoje ?>">
+          <input class="form-control" type="date" name="data_emprestimo" value="<?= $hoje ?>" required>
         </div>
 
         <div class="col-md-4">
-          <label class="form-label">Devolução prevista</label>
+          <label class="form-label">Data prevista (opcional)</label>
           <input class="form-control" type="date" name="data_prevista" value="<?= $previstaPadrao ?>">
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button class="btn btn-brand" type="submit">
-          <i class="bi bi-check2"></i>
-          Salvar
-        </button>
-
-        <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
+        <div class="col-12">
+          <button class="btn btn-pill" type="submit">
+            <i class="bi bi-check2"></i>
+            Salvar
+          </button>
+        </div>
       </div>
     </form>
   </div>

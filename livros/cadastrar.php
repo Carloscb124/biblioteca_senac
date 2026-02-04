@@ -37,8 +37,24 @@ include("../includes/header.php");
         </div>
       </div>
 
+      <div class="col-12 position-relative">
+        <label class="form-label">CDD (Categoria)</label>
+
+        <input type="text" id="cdd" class="form-control"
+          placeholder="Digite o código ou área"
+          autocomplete="off">
+
+        <input type="hidden" name="categoria" id="categoria"
+          value="<?= isset($l) ? (int)($l['categoria'] ?? 0) : 0 ?>">
+
+        <div id="resultadoCDD"
+          class="list-group position-absolute w-100"
+          style="z-index: 1050;"></div>
+      </div>
+
+
       <div class="form-actions">
-        <button class="btn btn-brand" type="submit">
+        <button class="btn btn-pill" type="submit">
           <i class="bi bi-check2"></i>
           Salvar
         </button>
@@ -48,5 +64,45 @@ include("../includes/header.php");
     </form>
   </div>
 </div>
+
+<script>
+  const inputCDD = document.getElementById("cdd");
+  const resultado = document.getElementById("resultadoCDD");
+  const hidden = document.getElementById("categoria");
+
+  function limpar() {
+    resultado.innerHTML = "";
+  }
+
+  inputCDD?.addEventListener("keyup", () => {
+    const q = inputCDD.value.trim();
+    hidden.value = ""; // ainda não selecionou nada
+
+    if (q.length < 2) {
+      limpar();
+      return;
+    }
+
+    fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
+      .then(r => r.text())
+      .then(html => resultado.innerHTML = html)
+      .catch(() => limpar());
+  });
+
+  resultado?.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-id]");
+    if (!item) return;
+
+    inputCDD.value = item.dataset.text;
+    hidden.value = item.dataset.id;
+    limpar();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target === inputCDD || resultado.contains(e.target)) return;
+    limpar();
+  });
+</script>
+
 
 <?php include("../includes/footer.php"); ?>
