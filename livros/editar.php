@@ -5,14 +5,8 @@ include("../includes/header.php");
 
 $id = (int)($_GET['id'] ?? 0);
 
-/*
-  Busca o livro + dados do CDD
-*/
 $stmt = mysqli_prepare($conn, "
-  SELECT
-    l.*,
-    c.codigo AS cdd_codigo,
-    c.descricao AS cdd_descricao
+  SELECT l.*, c.codigo AS cdd_codigo, c.descricao AS cdd_descricao
   FROM livros l
   LEFT JOIN cdd c ON c.id = l.categoria
   WHERE l.id = ?
@@ -26,9 +20,13 @@ if (!$l) { ?>
   <div class="container my-4">
     <div class="alert alert-danger mb-0">Livro não encontrado.</div>
   </div>
-  <?php include("../includes/footer.php");
-  exit; ?>
-<?php } ?>
+  <?php include("../includes/footer.php"); exit; ?>
+<?php }
+
+$qtd_total = (int)($l['qtd_total'] ?? 1);
+$qtd_disp  = (int)($l['qtd_disp'] ?? 0);
+$qtd_emp   = max(0, $qtd_total - $qtd_disp);
+?>
 
 <div class="container my-4">
   <div class="page-card">
@@ -47,33 +45,51 @@ if (!$l) { ?>
       <div class="row g-3">
         <div class="col-12">
           <label class="form-label">Título</label>
-          <input class="form-control" name="titulo" required
-            value="<?= htmlspecialchars($l['titulo']) ?>">
+          <input class="form-control" name="titulo" required value="<?= htmlspecialchars($l['titulo']) ?>">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Autor</label>
-          <input class="form-control" name="autor"
-            value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
+          <input class="form-control" name="autor" value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label">Ano</label>
           <input class="form-control" type="number" name="ano_publicacao" min="0"
-            value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
+                 value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label class="form-label">ISBN</label>
-          <input
-            class="form-control"
-            name="ISBN"
-            id="isbn"
-            maxlength="17"
-            placeholder="978-65-5501-123-4"
-            autocomplete="off"
-            value="<?= isset($l) ? htmlspecialchars($l['ISBN'] ?? '') : '' ?>">
+          <input class="form-control" name="ISBN" id="isbn" maxlength="20"
+                 value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
 
+          <!-- Preview da capa (não salva no banco) -->
+          <div class="mt-2 d-flex align-items-center gap-3">
+            <img
+              id="isbnCoverPreview"
+              src=""
+              alt="Capa do livro"
+              style="width:64px;height:96px;object-fit:cover;border-radius:10px;display:none;border:1px solid #e7e1d6;"
+              onerror="this.style.display='none';">
+            <div class="text-muted small" id="isbnCoverHint">Digite um ISBN para ver a capa.</div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Quantidade total</label>
+          <input class="form-control" type="number" name="qtd_total" min="<?= $qtd_emp ?>" value="<?= $qtd_total ?>" required>
+          <div class="form-text">Emprestados agora: <strong><?= $qtd_emp ?></strong>. O total não pode ser menor que isso.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Disponíveis</label>
+          <input class="form-control" value="<?= $qtd_disp ?>" disabled>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Emprestados</label>
+          <input class="form-control" value="<?= $qtd_emp ?>" disabled>
         </div>
 
         <!-- CDD -->
@@ -84,27 +100,17 @@ if (!$l) { ?>
             placeholder="Digite o código ou área"
             autocomplete="off"
             value="<?= htmlspecialchars(
-                      ($l['cdd_codigo'] && $l['cdd_descricao'])
-                        ? $l['cdd_codigo'] . ' - ' . $l['cdd_descricao']
-                        : ''
-                    ) ?>">
+              ($l['cdd_codigo'] && $l['cdd_descricao'])
+                ? $l['cdd_codigo'] . ' - ' . $l['cdd_descricao']
+                : ''
+            ) ?>">
 
           <input type="hidden" name="categoria" id="categoria"
             value="<?= (int)($l['categoria'] ?? 0) ?>">
 
-          <div id="resultadoCDD"
-            class="list-group position-absolute w-100"
-            style="z-index:1050"></div>
+          <div id="resultadoCDD" class="list-group position-absolute w-100" style="z-index:1050"></div>
 
           <div class="form-text">Clique numa sugestão para alterar a categoria.</div>
-        </div>
-
-        <div class="col-md-4">
-          <label class="form-label">Disponível</label>
-          <select class="form-select" name="disponivel">
-            <option value="1" <?= ((int)$l['disponivel'] === 1) ? "selected" : "" ?>>Sim</option>
-            <option value="0" <?= ((int)$l['disponivel'] === 0) ? "selected" : "" ?>>Não</option>
-          </select>
         </div>
       </div>
 
@@ -121,83 +127,117 @@ if (!$l) { ?>
 </div>
 
 <script>
-  const isbnInput = document.getElementById('isbn');
-
-  function onlyDigits(v) {
-    return (v || '').replace(/\D/g, '');
-  }
-
-  function formatISBN(value) {
-    const digits = onlyDigits(value);
-
-    // ISBN-10
-    if (digits.length <= 10) {
-      // padrão simples: X-XXX-XXXXX-X
-      let out = digits;
-      if (digits.length > 1) out = digits.slice(0,1) + '-' + digits.slice(1);
-      if (digits.length > 4) out = out.slice(0,5) + '-' + digits.slice(4);
-      if (digits.length > 9) out = out.slice(0,11) + '-' + digits.slice(9);
-      return out;
-    }
-
-    // ISBN-13
-    let out = digits.slice(0,13);
-    // 978-65-5501-123-4 (modelo BR comum)
-    out = out.replace(
-      /^(\d{3})(\d{0,2})(\d{0,4})(\d{0,3})(\d{0,1}).*/,
-      (_, a, b, c, d, e) =>
-        [a, b, c, d, e].filter(Boolean).join('-')
-    );
-    return out;
-  }
-
-  if (isbnInput) {
-    isbnInput.addEventListener('input', () => {
-      const pos = isbnInput.selectionStart;
-      isbnInput.value = formatISBN(isbnInput.value);
-      isbnInput.setSelectionRange(pos, pos);
-    });
-  }
-</script>
-
-
-<script>
+  // ===== CDD autocomplete =====
   const inputCDD = document.getElementById("cdd");
-  const resultado = document.getElementById("resultadoCDD");
-  const hidden = document.getElementById("categoria");
+  const resultadoCDD = document.getElementById("resultadoCDD");
+  const hiddenCat = document.getElementById("categoria");
 
-  function limpar() {
-    resultado.innerHTML = "";
-  }
+  function limparCDD() { resultadoCDD.innerHTML = ""; }
 
-  inputCDD.addEventListener("keyup", () => {
+  inputCDD?.addEventListener("keyup", () => {
     const q = inputCDD.value.trim();
-    hidden.value = ""; // se digitar, ainda não escolheu
+    hiddenCat.value = "";
 
-    if (q.length < 2) {
-      limpar();
-      return;
-    }
+    if (q.length < 2) { limparCDD(); return; }
 
     fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
-      .then(res => res.text())
-      .then(html => resultado.innerHTML = html)
-      .catch(() => limpar());
+      .then(r => r.text())
+      .then(html => resultadoCDD.innerHTML = html)
+      .catch(() => limparCDD());
   });
 
-  resultado.addEventListener("click", (e) => {
+  resultadoCDD?.addEventListener("click", (e) => {
     const item = e.target.closest("[data-id]");
     if (!item) return;
 
     inputCDD.value = item.dataset.text;
-    hidden.value = item.dataset.id;
-    limpar();
+    hiddenCat.value = item.dataset.id;
+    limparCDD();
   });
 
   document.addEventListener("click", (e) => {
-    if (e.target === inputCDD || resultado.contains(e.target)) return;
-    limpar();
+    if (e.target === inputCDD || resultadoCDD.contains(e.target)) return;
+    limparCDD();
   });
+
+  // ===== Preview da capa por ISBN (Open Library) =====
+  const isbnInput = document.getElementById('isbn');
+  const imgPrev = document.getElementById('isbnCoverPreview');
+  const hint = document.getElementById('isbnCoverHint');
+
+  function isbnDigits(v){ return (v || '').replace(/\D/g, ''); }
+
+  function updateCover(){
+    const d = isbnDigits(isbnInput?.value);
+    if (!d || (d.length !== 10 && d.length !== 13)) {
+      imgPrev.style.display = 'none';
+      imgPrev.src = '';
+      hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
+      return;
+    }
+
+    const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
+
+    imgPrev.onload = () => {
+      imgPrev.style.display = 'block';
+      hint.textContent = 'Capa encontrada (Open Library).';
+    };
+
+    imgPrev.onerror = () => {
+      imgPrev.style.display = 'none';
+      hint.textContent = 'Sem capa para este ISBN (Open Library).';
+    };
+
+    imgPrev.src = url;
+  }
+
+  let t = null;
+  isbnInput?.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(updateCover, 250);
+  });
+
+  async function updateCover() {
+  const d = isbnDigits(isbnInput?.value);
+  if (!d || (d.length !== 10 && d.length !== 13)) {
+    imgPrev.style.display = 'none';
+    imgPrev.src = '';
+    hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
+    return;
+  }
+
+  // 1. Tenta Open Library primeiro
+  const urlOL = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
+  
+  imgPrev.onload = () => {
+    imgPrev.style.display = 'block';
+    hint.textContent = 'Capa encontrada (Open Library).';
+  };
+
+  imgPrev.onerror = async () => {
+    // 2. Se falhar, tenta Google Books
+    hint.textContent = 'Buscando no Google Books...';
+    try {
+      const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${d}`);
+      const data = await resp.json();
+      
+      if (data.totalItems > 0 && data.items[0].volumeInfo.imageLinks) {
+        const urlGoogle = data.items[0].volumeInfo.imageLinks.thumbnail.replace('http:', 'https:');
+        imgPrev.src = urlGoogle;
+        imgPrev.style.display = 'block';
+        hint.textContent = 'Capa encontrada (Google Books).';
+      } else {
+        imgPrev.style.display = 'none';
+        hint.textContent = 'Sem capa disponível para este ISBN.';
+      }
+    } catch (e) {
+      imgPrev.style.display = 'none';
+      hint.textContent = 'Erro ao buscar capa.';
+    }
+  };
+
+  imgPrev.src = urlOL;
+}
 </script>
 
 <?php include("../includes/footer.php"); ?>

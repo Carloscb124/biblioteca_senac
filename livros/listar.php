@@ -42,16 +42,15 @@ $q = trim($_GET['q'] ?? '');
     <div class="table-base-wrap">
       <div class="table-responsive">
         <table class="table table-base align-middle mb-0">
-
           <thead>
             <tr>
-              <th class="col-id">ID</th>
+              <th style="width:70px;">Capa</th>
               <th>Título</th>
               <th>Autor</th>
               <th>Categoria (CDD)</th>
               <th class="col-ano">Ano</th>
               <th>ISBN</th>
-              <th class="col-status">Disponível</th>
+              <th class="col-status">Disponíveis</th>
               <th class="text-end col-acoes">Ações</th>
             </tr>
           </thead>
@@ -61,14 +60,73 @@ $q = trim($_GET['q'] ?? '');
               <td colspan="8" class="text-center text-muted py-4">Carregando...</td>
             </tr>
           </tbody>
-
         </table>
       </div>
     </div>
 
-    <!-- PAGINAÇÃO -->
     <div id="booksPagination" class="mt-3"></div>
+  </div>
+</div>
 
+<!-- MODAL: BAIXAR LIVRO -->
+<div class="modal fade" id="modalBaixarLivro" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-box-arrow-down me-2"></i>Baixar livro
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-2 text-muted">Você está prestes a baixar:</div>
+        <div class="fw-semibold fs-5" id="modalLivroTituloBaixar">Livro</div>
+
+        <div class="alert alert-warning mt-3 mb-0" style="border-radius:12px;">
+          Ele não será apagado. Apenas ficará desativado no sistema.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+        <a href="#" class="btn btn-danger" id="btnConfirmarBaixar">
+          <i class="bi bi-box-arrow-down me-1"></i> Baixar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REATIVAR LIVRO -->
+<div class="modal fade" id="modalReativarLivro" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-arrow-up-circle me-2"></i>Reativar livro
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-2 text-muted">Você está prestes a reativar:</div>
+        <div class="fw-semibold fs-5" id="modalLivroTituloReativar">Livro</div>
+
+        <div class="alert alert-success mt-3 mb-0" style="border-radius:12px;">
+          O livro volta para o acervo e os exemplares disponíveis serão restaurados.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
+        <a href="#" class="btn btn-success" id="btnConfirmarReativar">
+          <i class="bi bi-arrow-up-circle me-1"></i> Reativar
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -76,7 +134,6 @@ $q = trim($_GET['q'] ?? '');
   const input = document.getElementById("bookSearch");
   const tbody = document.getElementById("booksTbody");
   const pagWrap = document.getElementById("booksPagination");
-
   let timer = null;
 
   function renderEmpty() {
@@ -107,14 +164,9 @@ $q = trim($_GET['q'] ?? '');
     }
 
     const data = await resp.json();
-
-    tbody.innerHTML = data.rows_html?.trim()
-      ? data.rows_html
-      : renderEmpty() || "";
-
+    tbody.innerHTML = data.rows_html?.trim() ? data.rows_html : (renderEmpty(), "");
     pagWrap.innerHTML = data.pagination_html || "";
 
-    // paginação sem reload
     pagWrap.querySelectorAll("[data-page]").forEach(a => {
       a.addEventListener("click", (e) => {
         e.preventDefault();
@@ -124,16 +176,66 @@ $q = trim($_GET['q'] ?? '');
     });
   }
 
-  // debounce da busca
   input.addEventListener("input", () => {
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      fetchBooks({ q: input.value.trim(), p: 1 });
-    }, 250);
+    timer = setTimeout(() => fetchBooks({ q: input.value.trim(), p: 1 }), 250);
   });
 
-  // carga inicial
   fetchBooks({ q: input.value.trim(), p: 1 });
+
+  // ===== Bootstrap Modal: corrigido =====
+  const modalBaixarEl = document.getElementById("modalBaixarLivro");
+  const modalReativarEl = document.getElementById("modalReativarLivro");
+
+  const tituloBaixar = document.getElementById("modalLivroTituloBaixar");
+  const tituloReativar = document.getElementById("modalLivroTituloReativar");
+
+  const btnConfirmarBaixar = document.getElementById("btnConfirmarBaixar");
+  const btnConfirmarReativar = document.getElementById("btnConfirmarReativar");
+
+  // Pega (ou cria) o modal sempre na hora do clique, não antes.
+  function getModalInstance(modalEl) {
+    if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
+
+    // se já existir instância, pega ela; senão cria
+    return bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  }
+
+  tbody.addEventListener("click", (e) => {
+    const btnBaixar = e.target.closest("[data-action='baixar']");
+    const btnReativar = e.target.closest("[data-action='reativar']");
+    if (!btnBaixar && !btnReativar) return;
+
+    e.preventDefault();
+
+    const btn = btnBaixar || btnReativar;
+    const id = btn.getAttribute("data-id");
+    const titulo = btn.getAttribute("data-titulo") || "Livro";
+
+    if (btnBaixar) {
+      const modal = getModalInstance(modalBaixarEl);
+      // se por algum motivo não tiver bootstrap, redireciona direto (sem confirm feio)
+      if (!modal) {
+        window.location.href = `excluir.php?id=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      tituloBaixar.textContent = titulo;
+      btnConfirmarBaixar.href = `excluir.php?id=${encodeURIComponent(id)}`;
+      modal.show();
+      return;
+    }
+
+    const modal = getModalInstance(modalReativarEl);
+    if (!modal) {
+      window.location.href = `reativar.php?id=${encodeURIComponent(id)}`;
+      return;
+    }
+
+    tituloReativar.textContent = titulo;
+    btnConfirmarReativar.href = `reativar.php?id=${encodeURIComponent(id)}`;
+    modal.show();
+  });
 </script>
 
 <?php include("../includes/footer.php"); ?>

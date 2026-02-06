@@ -26,39 +26,55 @@ include("../includes/header.php");
           <input class="form-control" name="autor" placeholder="Ex: Machado de Assis">
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label">Ano</label>
           <input class="form-control" type="number" name="ano_publicacao" min="0" placeholder="Ex: 1899">
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label class="form-label">ISBN</label>
           <input
             class="form-control"
             name="ISBN"
             id="isbn"
-            maxlength="17"
-            placeholder="978-65-5501-123-4"
+            maxlength="20"
+            placeholder="Digite o ISBN (com ou sem traços)"
             autocomplete="off"
-            value="<?= isset($l) ? htmlspecialchars($l['ISBN'] ?? '') : '' ?>">
+            required>
+
+          <!-- Preview da capa (não salva no banco) -->
+          <div class="mt-2 d-flex align-items-center gap-3">
+            <img
+              id="isbnCoverPreview"
+              src=""
+              alt="Capa do livro"
+              style="width:64px;height:96px;object-fit:cover;border-radius:10px;display:none;border:1px solid #e7e1d6;"
+              onerror="this.style.display='none';">
+            <div class="text-muted small" id="isbnCoverHint">Digite um ISBN para ver a capa.</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Quantidade (exemplares)</label>
+          <input class="form-control" type="number" name="qtd_total" min="1" value="1" required>
+          <div class="form-text">Ao cadastrar, todos os exemplares entram como disponíveis.</div>
+        </div>
+
+        <!-- CDD -->
+        <div class="col-12 position-relative">
+          <label class="form-label">CDD (Categoria)</label>
+
+          <input type="text" id="cdd" class="form-control"
+            placeholder="Digite o código ou área"
+            autocomplete="off">
+
+          <input type="hidden" name="categoria" id="categoria" value="">
+
+          <div id="resultadoCDD" class="list-group position-absolute w-100" style="z-index: 1050;"></div>
+
+          <div class="form-text">Clique numa sugestão para preencher a categoria.</div>
         </div>
       </div>
-
-      <div class="col-12 position-relative">
-        <label class="form-label">CDD (Categoria)</label>
-
-        <input type="text" id="cdd" class="form-control"
-          placeholder="Digite o código ou área"
-          autocomplete="off">
-
-        <input type="hidden" name="categoria" id="categoria"
-          value="<?= isset($l) ? (int)($l['categoria'] ?? 0) : 0 ?>">
-
-        <div id="resultadoCDD"
-          class="list-group position-absolute w-100"
-          style="z-index: 1050;"></div>
-      </div>
-
 
       <div class="form-actions">
         <button class="btn btn-pill" type="submit">
@@ -73,84 +89,117 @@ include("../includes/header.php");
 </div>
 
 <script>
-  const isbnInput = document.getElementById('isbn');
-
-  function onlyDigits(v) {
-    return (v || '').replace(/\D/g, '');
-  }
-
-  function formatISBN(value) {
-    const digits = onlyDigits(value);
-
-    // ISBN-10
-    if (digits.length <= 10) {
-      // padrão simples: X-XXX-XXXXX-X
-      let out = digits;
-      if (digits.length > 1) out = digits.slice(0,1) + '-' + digits.slice(1);
-      if (digits.length > 4) out = out.slice(0,5) + '-' + digits.slice(4);
-      if (digits.length > 9) out = out.slice(0,11) + '-' + digits.slice(9);
-      return out;
-    }
-
-    // ISBN-13
-    let out = digits.slice(0,13);
-    // 978-65-5501-123-4 (modelo BR comum)
-    out = out.replace(
-      /^(\d{3})(\d{0,2})(\d{0,4})(\d{0,3})(\d{0,1}).*/,
-      (_, a, b, c, d, e) =>
-        [a, b, c, d, e].filter(Boolean).join('-')
-    );
-    return out;
-  }
-
-  if (isbnInput) {
-    isbnInput.addEventListener('input', () => {
-      const pos = isbnInput.selectionStart;
-      isbnInput.value = formatISBN(isbnInput.value);
-      isbnInput.setSelectionRange(pos, pos);
-    });
-  }
-</script>
-
-
-<script>
+  // ===== CDD autocomplete =====
   const inputCDD = document.getElementById("cdd");
-  const resultado = document.getElementById("resultadoCDD");
-  const hidden = document.getElementById("categoria");
+  const resultadoCDD = document.getElementById("resultadoCDD");
+  const hiddenCat = document.getElementById("categoria");
 
-  function limpar() {
-    resultado.innerHTML = "";
-  }
+  function limparCDD() { resultadoCDD.innerHTML = ""; }
 
   inputCDD?.addEventListener("keyup", () => {
     const q = inputCDD.value.trim();
-    hidden.value = ""; // ainda não selecionou nada
+    hiddenCat.value = "";
 
-    if (q.length < 2) {
-      limpar();
-      return;
-    }
+    if (q.length < 2) { limparCDD(); return; }
 
     fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
       .then(r => r.text())
-      .then(html => resultado.innerHTML = html)
-      .catch(() => limpar());
+      .then(html => resultadoCDD.innerHTML = html)
+      .catch(() => limparCDD());
   });
 
-  resultado?.addEventListener("click", (e) => {
+  resultadoCDD?.addEventListener("click", (e) => {
     const item = e.target.closest("[data-id]");
     if (!item) return;
 
     inputCDD.value = item.dataset.text;
-    hidden.value = item.dataset.id;
-    limpar();
+    hiddenCat.value = item.dataset.id;
+    limparCDD();
   });
 
   document.addEventListener("click", (e) => {
-    if (e.target === inputCDD || resultado.contains(e.target)) return;
-    limpar();
+    if (e.target === inputCDD || resultadoCDD.contains(e.target)) return;
+    limparCDD();
   });
-</script>
 
+  // ===== Preview da capa por ISBN (Open Library) =====
+  const isbnInput = document.getElementById('isbn');
+  const imgPrev = document.getElementById('isbnCoverPreview');
+  const hint = document.getElementById('isbnCoverHint');
+
+  function isbnDigits(v){ return (v || '').replace(/\D/g, ''); }
+
+  function updateCover(){
+    const d = isbnDigits(isbnInput?.value);
+    if (!d || (d.length !== 10 && d.length !== 13)) {
+      imgPrev.style.display = 'none';
+      imgPrev.src = '';
+      hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
+      return;
+    }
+
+    const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
+
+    imgPrev.onload = () => {
+      imgPrev.style.display = 'block';
+      hint.textContent = 'Capa encontrada (Open Library).';
+    };
+
+    imgPrev.onerror = () => {
+      imgPrev.style.display = 'none';
+      hint.textContent = 'Sem capa para este ISBN (Open Library).';
+    };
+
+    imgPrev.src = url;
+  }
+
+  let t = null;
+  isbnInput?.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(updateCover, 250);
+  });
+
+  async function updateCover() {
+  const d = isbnDigits(isbnInput?.value);
+  if (!d || (d.length !== 10 && d.length !== 13)) {
+    imgPrev.style.display = 'none';
+    imgPrev.src = '';
+    hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
+    return;
+  }
+
+  // 1. Tenta Open Library primeiro
+  const urlOL = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
+  
+  imgPrev.onload = () => {
+    imgPrev.style.display = 'block';
+    hint.textContent = 'Capa encontrada (Open Library).';
+  };
+
+  imgPrev.onerror = async () => {
+    // 2. Se falhar, tenta Google Books
+    hint.textContent = 'Buscando no Google Books...';
+    try {
+      const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${d}`);
+      const data = await resp.json();
+      
+      if (data.totalItems > 0 && data.items[0].volumeInfo.imageLinks) {
+        const urlGoogle = data.items[0].volumeInfo.imageLinks.thumbnail.replace('http:', 'https:');
+        imgPrev.src = urlGoogle;
+        imgPrev.style.display = 'block';
+        hint.textContent = 'Capa encontrada (Google Books).';
+      } else {
+        imgPrev.style.display = 'none';
+        hint.textContent = 'Sem capa disponível para este ISBN.';
+      }
+    } catch (e) {
+      imgPrev.style.display = 'none';
+      hint.textContent = 'Erro ao buscar capa.';
+    }
+  };
+
+  imgPrev.src = urlOL;
+}
+</script>
 
 <?php include("../includes/footer.php"); ?>
