@@ -12,6 +12,7 @@ if ($id <= 0) {
 mysqli_begin_transaction($conn);
 
 try {
+  // trava empréstimo
   $stmt = mysqli_prepare($conn, "SELECT id_livro, devolvido FROM emprestimos WHERE id = ? FOR UPDATE");
   mysqli_stmt_bind_param($stmt, "i", $id);
   mysqli_stmt_execute($stmt);
@@ -24,15 +25,15 @@ try {
   $id_livro = (int)$e['id_livro'];
   $hoje = date('Y-m-d');
 
+  // marca devolvido
   $stmt = mysqli_prepare($conn, "UPDATE emprestimos SET devolvido = 1, data_devolucao = ? WHERE id = ?");
   mysqli_stmt_bind_param($stmt, "si", $hoje, $id);
   mysqli_stmt_execute($stmt);
 
-  // devolve 1 exemplar (sem passar do total) e recalcula disponível
+  // devolve 1 exemplar ao livro (limitando ao qtd_total)
   $stmt = mysqli_prepare($conn, "
     UPDATE livros
-    SET qtd_disp = LEAST(qtd_disp + 1, qtd_total),
-        disponivel = IF(LEAST(qtd_disp + 1, qtd_total) > 0, 1, 0)
+    SET qtd_disp = LEAST(qtd_total, qtd_disp + 1)
     WHERE id = ?
   ");
   mysqli_stmt_bind_param($stmt, "i", $id_livro);

@@ -28,20 +28,32 @@ function cover_fallback_svg_datauri() {
   return "data:image/svg+xml;utf8," . rawurlencode($svg);
 }
 
-// COUNT
+/*
+  Disponíveis calculado na hora:
+  qtd_disp_calc = max(qtd_total - emprestimos_abertos, 0)
+*/
+$where = "WHERE 1=1";
+$params = [];
+$types = "";
+
 if ($temBusca) {
-  $sqlCount = "SELECT COUNT(*) AS total FROM livros
-               WHERE titulo LIKE ? OR autor LIKE ? OR ISBN LIKE ?";
-  $stmtCount = mysqli_prepare($conn, $sqlCount);
+  $where .= " AND (l.titulo LIKE ? OR l.autor LIKE ? OR l.ISBN LIKE ?)";
   $like = "%{$q}%";
-  mysqli_stmt_bind_param($stmtCount, "sss", $like, $like, $like);
-  mysqli_stmt_execute($stmtCount);
-  $resCount = mysqli_stmt_get_result($stmtCount);
-  $total_registros = (int)mysqli_fetch_assoc($resCount)['total'];
-} else {
-  $resCount = mysqli_query($conn, "SELECT COUNT(*) AS total FROM livros");
-  $total_registros = (int)mysqli_fetch_assoc($resCount)['total'];
+  $params[] = $like; $params[] = $like; $params[] = $like;
+  $types .= "sss";
 }
+
+// COUNT
+$sqlCount = "
+  SELECT COUNT(*) AS total
+  FROM livros l
+  $where
+";
+$stmtCount = mysqli_prepare($conn, $sqlCount);
+if ($types !== "") mysqli_stmt_bind_param($stmtCount, $types, ...$params);
+mysqli_stmt_execute($stmtCount);
+$resCount = mysqli_stmt_get_result($stmtCount);
+$total_registros = (int)mysqli_fetch_assoc($resCount)['total'];
 
 $total_paginas = (int)ceil($total_registros / $por_pagina);
 if ($total_paginas < 1) $total_paginas = 1;
@@ -49,31 +61,31 @@ if ($pagina > $total_paginas) $pagina = $total_paginas;
 
 $offset = ($pagina - 1) * $por_pagina;
 
-// SELECT
-if ($temBusca) {
-  $sql = "
-    SELECT l.*, c.codigo AS cdd_codigo, c.descricao AS cdd_descricao
-    FROM livros l
-    LEFT JOIN cdd c ON c.id = l.categoria
-    WHERE l.titulo LIKE ? OR l.autor LIKE ? OR l.ISBN LIKE ?
-    ORDER BY l.disponivel DESC, l.id DESC
-    LIMIT ? OFFSET ?
-  ";
-  $stmt = mysqli_prepare($conn, $sql);
-  $like = "%{$q}%";
-  mysqli_stmt_bind_param($stmt, "sssii", $like, $like, $like, $por_pagina, $offset);
-  mysqli_stmt_execute($stmt);
-  $r = mysqli_stmt_get_result($stmt);
-} else {
-  $sql = "
-    SELECT l.*, c.codigo AS cdd_codigo, c.descricao AS cdd_descricao
-    FROM livros l
-    LEFT JOIN cdd c ON c.id = l.categoria
-    ORDER BY l.disponivel DESC, l.id DESC
-    LIMIT $por_pagina OFFSET $offset
-  ";
-  $r = mysqli_query($conn, $sql);
-}
+// SELECT com cálculo de empréstimos abertos
+$sql = "
+  SELECT
+    l.*,
+    c.codigo AS cdd_codigo,
+    c.descricao AS cdd_descricao,
+    COALESCE(SUM(CASE WHEN e.devolvido = 0 THEN 1 ELSE 0 END), 0) AS emprestimos_abertos
+  FROM livros l
+  LEFT JOIN cdd c ON c.id = l.categoria
+  LEFT JOIN emprestimos e ON e.id_livro = l.id
+  $where
+  GROUP BY l.id
+  ORDER BY l.disponivel DESC, l.id DESC
+  LIMIT ? OFFSET ?
+";
+
+$stmt = mysqli_prepare($conn, $sql);
+$types2 = $types . "ii";
+$params2 = $params;
+$params2[] = $por_pagina;
+$params2[] = $offset;
+
+mysqli_stmt_bind_param($stmt, $types2, ...$params2);
+mysqli_stmt_execute($stmt);
+$r = mysqli_stmt_get_result($stmt);
 
 $fallback = esc(cover_fallback_svg_datauri());
 
@@ -97,10 +109,13 @@ while ($l = mysqli_fetch_assoc($r)) {
   $isbn_show = $isbn_digits !== '' ? esc($isbn_digits) : '-';
 
   $qtd_total = (int)($l['qtd_total'] ?? 1);
-  $qtd_disp  = (int)($l['qtd_disp'] ?? 0);
+  $abertos   = (int)($l['emprestimos_abertos'] ?? 0);
 
-  $badge = "<span class='badge-soft-ok'>{$qtd_disp}/{$qtd_total}</span>";
-  if ($qtd_disp <= 0) $badge = "<span class='badge-soft-no'>0/{$qtd_total}</span>";
+  $qtd_disp_calc = $qtd_total - $abertos;
+  if ($qtd_disp_calc < 0) $qtd_disp_calc = 0;
+
+  $badge = "<span class='badge-soft-ok'>{$qtd_disp_calc}/{$qtd_total}</span>";
+  if ($qtd_disp_calc <= 0) $badge = "<span class='badge-soft-no'>0/{$qtd_total}</span>";
 
   $cover = cover_url_isbn_small($isbn_digits);
   $coverEsc = esc($cover);
@@ -120,7 +135,6 @@ while ($l = mysqli_fetch_assoc($r)) {
 
   $acaoBtn = "";
   if (!$desativado) {
-    // BAIXAR
     $acaoBtn = "
       <a class='icon-btn icon-btn--del'
          href='#'
@@ -132,7 +146,6 @@ while ($l = mysqli_fetch_assoc($r)) {
       </a>
     ";
   } else {
-    // REATIVAR
     $acaoBtn = "
       <a class='icon-btn icon-btn--edit'
          href='#'
@@ -203,15 +216,6 @@ if ($total_registros > 0) {
   </li>";
 
   $pagination_html .= "</ul></nav>";
-
-  $inicioReg = min($total_registros, $offset + 1);
-  $fimReg = min($total_registros, $offset + $por_pagina);
-
-  $pagination_html .= "
-    <div class='text-center text-muted mt-2' style='font-size: 13px;'>
-      Mostrando {$inicioReg}–{$fimReg} de {$total_registros} livros
-    </div>
-  ";
 }
 
 echo json_encode([

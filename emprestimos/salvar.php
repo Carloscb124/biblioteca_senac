@@ -17,15 +17,27 @@ if ($data_prev === '') $data_prev = null;
 mysqli_begin_transaction($conn);
 
 try {
-  // trava e confere qtd disponível
-  $stmt = mysqli_prepare($conn, "SELECT qtd_disp FROM livros WHERE id = ? FOR UPDATE");
+  // trava e confere: livro precisa estar ATIVO no acervo e com exemplares disponíveis
+  $stmt = mysqli_prepare($conn, "
+    SELECT disponivel, qtd_disp
+    FROM livros
+    WHERE id = ?
+    FOR UPDATE
+  ");
   mysqli_stmt_bind_param($stmt, "i", $id_livro);
   mysqli_stmt_execute($stmt);
   $res = mysqli_stmt_get_result($stmt);
   $livro = mysqli_fetch_assoc($res);
 
   if (!$livro) throw new Exception("Livro não encontrado.");
-  if ((int)$livro['qtd_disp'] <= 0) throw new Exception("Sem exemplares disponíveis no momento.");
+
+  if ((int)$livro['disponivel'] !== 1) {
+    throw new Exception("Este livro está baixado/desativado no acervo.");
+  }
+
+  if ((int)$livro['qtd_disp'] <= 0) {
+    throw new Exception("Sem exemplares disponíveis no momento.");
+  }
 
   // cria empréstimo
   $stmt = mysqli_prepare($conn, "
@@ -35,11 +47,10 @@ try {
   mysqli_stmt_bind_param($stmt, "iiss", $id_usuario, $id_livro, $data_emp, $data_prev);
   mysqli_stmt_execute($stmt);
 
-  // baixa 1 exemplar e recalcula disponível
+  // baixa 1 exemplar (NÃO mexe no 'disponivel' porque ele é status do acervo)
   $stmt = mysqli_prepare($conn, "
     UPDATE livros
-    SET qtd_disp = qtd_disp - 1,
-        disponivel = IF(qtd_disp - 1 > 0, 1, 0)
+    SET qtd_disp = GREATEST(qtd_disp - 1, 0)
     WHERE id = ?
   ");
   mysqli_stmt_bind_param($stmt, "i", $id_livro);

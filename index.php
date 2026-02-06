@@ -4,11 +4,37 @@ include("auth/auth_guard.php");
 include("conexao.php");
 include("includes/header.php");
 
-/* KPIs */
-$livros_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros"))['c'];
-$usuarios_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios"))['c'];
-$em_emprestimo = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM emprestimos WHERE devolvido = 0"))['c'];
+$hoje = date('Y-m-d');
 
+/*
+  KPIs corretos:
+  - Livros no acervo = livros ATIVOS (disponivel=1)
+  - Membros ativos = usuarios ATIVOS e perfil leitor (se você usa isso)
+  - Em empréstimo = empréstimos abertos (devolvido=0)
+  - Em atraso = abertos e data_prevista < hoje
+*/
+
+// Livros ativos no acervo
+$livros_total = (int)mysqli_fetch_assoc(
+  mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros WHERE disponivel = 1")
+)['c'];
+
+// (Opcional, mas muito útil) total de exemplares disponíveis agora
+$exemplares_disponiveis = (int)mysqli_fetch_assoc(
+  mysqli_query($conn, "SELECT COALESCE(SUM(qtd_disp),0) AS c FROM livros WHERE disponivel = 1")
+)['c'];
+
+// Membros ativos (ajusta se seu sistema não usa perfil)
+$usuarios_total = (int)mysqli_fetch_assoc(
+  mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios WHERE ativo = 1 AND perfil = 'leitor'")
+)['c'];
+
+// Em empréstimo
+$em_emprestimo = (int)mysqli_fetch_assoc(
+  mysqli_query($conn, "SELECT COUNT(*) AS c FROM emprestimos WHERE devolvido = 0")
+)['c'];
+
+// Em atraso
 $atrasados = (int)mysqli_fetch_assoc(mysqli_query(
   $conn,
   "SELECT COUNT(*) AS c
@@ -34,8 +60,6 @@ ORDER BY e.id DESC
 LIMIT 5
 ";
 $recentes = mysqli_query($conn, $sql_recent);
-
-$hoje = date('Y-m-d');
 ?>
 
 <div class="container my-4">
@@ -58,25 +82,25 @@ $hoje = date('Y-m-d');
   <div class="dash-kpis">
     <div class="kpi-card">
       <div class="kpi-ic"><i class="bi bi-book"></i></div>
-      <div class="kpi-num"><?= $livros_total ?></div>
+      <div class="kpi-num"><?= (int)$livros_total ?></div>
       <div class="kpi-label">Livros no Acervo</div>
     </div>
 
     <div class="kpi-card">
       <div class="kpi-ic"><i class="bi bi-people"></i></div>
-      <div class="kpi-num"><?= $usuarios_total ?></div>
+      <div class="kpi-num"><?= (int)$usuarios_total ?></div>
       <div class="kpi-label">Membros Ativos</div>
     </div>
 
     <div class="kpi-card">
       <div class="kpi-ic"><i class="bi bi-arrow-repeat"></i></div>
-      <div class="kpi-num"><?= $em_emprestimo ?></div>
+      <div class="kpi-num"><?= (int)$em_emprestimo ?></div>
       <div class="kpi-label">Em Empréstimo</div>
     </div>
 
     <div class="kpi-card kpi-danger">
       <div class="kpi-ic"><i class="bi bi-exclamation-circle"></i></div>
-      <div class="kpi-num"><?= $atrasados ?></div>
+      <div class="kpi-num"><?= (int)$atrasados ?></div>
       <div class="kpi-label">Em Atraso</div>
     </div>
   </div>
