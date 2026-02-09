@@ -6,21 +6,38 @@ include("../includes/header.php");
 
 $hoje = date('Y-m-d');
 
-// ===== PAGINAÇÃO =====
+// ===============================
+// PAGINAÇÃO
+// ===============================
 $por_pagina = 10;
 $pagina = isset($_GET['p']) ? (int)$_GET['p'] : 1;
 if ($pagina < 1) $pagina = 1;
 $offset = ($pagina - 1) * $por_pagina;
 
-// ===== FILTROS INICIAIS (primeiro carregamento) =====
+// ===============================
+// FILTROS INICIAIS
+// ===============================
 $q = trim($_GET['q'] ?? '');
 $status = trim($_GET['status'] ?? '');
 
-// ===== MONTA WHERE =====
+// ===============================
+// FILTRO VINDO DO DASHBOARD (cards)
+// dashboard manda ?f=abertos | atrasados
+// ===============================
+$f = trim($_GET['f'] ?? '');
+if ($status === '' && $f !== '') {
+  if ($f === 'abertos') $status = 'aberto';
+  if ($f === 'atrasados') $status = 'atrasado';
+}
+
+// ===============================
+// MONTA WHERE + PARAMS
+// ===============================
 $where = [];
 $params = [];
 $types = "";
 
+// Busca por nome do usuário ou título do livro
 if ($q !== '') {
   $where[] = "(u.nome LIKE ? OR l.titulo LIKE ?)";
   $like = "%{$q}%";
@@ -29,6 +46,7 @@ if ($q !== '') {
   $types .= "ss";
 }
 
+// Filtro por status
 if ($status === 'devolvido') {
   $where[] = "e.devolvido = 1";
 } elseif ($status === 'atrasado') {
@@ -43,7 +61,9 @@ if ($status === 'devolvido') {
 
 $whereSql = count($where) ? ("WHERE " . implode(" AND ", $where)) : "";
 
-// ===== COUNT TOTAL =====
+// ===============================
+// COUNT TOTAL (pra paginação)
+// ===============================
 $sqlCount = "
   SELECT COUNT(*) AS total
   FROM emprestimos e
@@ -51,7 +71,6 @@ $sqlCount = "
   JOIN livros l ON l.id = e.id_livro
   $whereSql
 ";
-
 $stmtC = mysqli_prepare($conn, $sqlCount);
 if ($types !== "") {
   mysqli_stmt_bind_param($stmtC, $types, ...$params);
@@ -60,11 +79,14 @@ mysqli_stmt_execute($stmtC);
 $resC = mysqli_stmt_get_result($stmtC);
 $total = (int)(mysqli_fetch_assoc($resC)['total'] ?? 0);
 
+// Calcula total de páginas e ajusta offset
 $total_paginas = max(1, (int)ceil($total / $por_pagina));
 if ($pagina > $total_paginas) $pagina = $total_paginas;
 $offset = ($pagina - 1) * $por_pagina;
 
-// ===== SELECT PAGINADO =====
+// ===============================
+// SELECT PAGINADO
+// ===============================
 $sql = "
   SELECT
     e.id,
@@ -81,7 +103,6 @@ $sql = "
   ORDER BY e.id DESC
   LIMIT ? OFFSET ?
 ";
-
 $stmt = mysqli_prepare($conn, $sql);
 
 // bind dos filtros + limit/offset
@@ -94,7 +115,9 @@ mysqli_stmt_bind_param($stmt, $types2, ...$params2);
 mysqli_stmt_execute($stmt);
 $r = mysqli_stmt_get_result($stmt);
 
-// ===== helpers para resumo/paginação =====
+// ===============================
+// helpers
+// ===============================
 $inicio = ($total === 0) ? 0 : ($offset + 1);
 $fim = min($offset + $por_pagina, $total);
 
@@ -105,6 +128,14 @@ function montaLink($p, $q, $status)
   if ($q !== '') $qs['q'] = $q;
   if ($status !== '') $qs['status'] = $status;
   return "listar.php?" . http_build_query($qs);
+}
+
+function statusLabel($s)
+{
+  if ($s === 'aberto') return "Abertos";
+  if ($s === 'atrasado') return "Atrasados";
+  if ($s === 'devolvido') return "Devolvidos";
+  return "Todos";
 }
 ?>
 
@@ -117,6 +148,18 @@ function montaLink($p, $q, $status)
         <i class="bi bi-plus-lg"></i>
         Novo Empréstimo
       </a>
+    </div>
+
+    <!-- CHIP: mostra filtro ativo -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="text-muted small">Filtro:</span>
+      <span class="badge rounded-pill text-bg-light" style="border:1px solid #e7e1d6;">
+        <?= htmlspecialchars(statusLabel($status)) ?>
+      </span>
+
+      <?php if ($status !== '' || $q !== '') { ?>
+        <a class="small text-decoration-none ms-2" href="listar.php">Limpar filtros</a>
+      <?php } ?>
     </div>
 
     <!-- BUSCA + FILTRO -->
@@ -171,6 +214,10 @@ function montaLink($p, $q, $status)
               $devolvido = (int)$e['devolvido'];
               $prevista  = $e['data_prevista'] ?? null;
               $atrasado  = ($devolvido === 0 && !empty($prevista) && $prevista < $hoje);
+
+              // Preparando textos pro modal (ENT_QUOTES evita quebrar atributo HTML)
+              $livroAttr = htmlspecialchars($e['livro_titulo'], ENT_QUOTES);
+              $userAttr  = htmlspecialchars($e['usuario_nome'], ENT_QUOTES);
             ?>
               <tr>
                 <td class="text-muted fw-semibold">#<?= (int)$e['id'] ?></td>
@@ -199,23 +246,32 @@ function montaLink($p, $q, $status)
 
                 <td class="text-end">
                   <?php if ($devolvido === 0) { ?>
+                    <!-- Editar normal -->
                     <a class="icon-btn icon-btn--edit"
                       href="editar.php?id=<?= (int)$e['id'] ?>"
                       title="Editar">
                       <i class="bi bi-pencil"></i>
                     </a>
 
+                    <!-- Devolver: agora abre MODAL (sem confirm do navegador) -->
                     <a class="icon-btn icon-btn--edit"
-                      href="devolver.php?id=<?= (int)$e['id'] ?>"
-                      onclick="return confirm('Confirmar devolução?')"
+                      href="#"
+                      data-action="devolver"
+                      data-id="<?= (int)$e['id'] ?>"
+                      data-livro="<?= $livroAttr ?>"
+                      data-usuario="<?= $userAttr ?>"
                       title="Devolver">
                       <i class="bi bi-check2-circle"></i>
                     </a>
                   <?php } ?>
 
+                  <!-- Excluir: abre MODAL -->
                   <a class="icon-btn icon-btn--del"
-                    href="excluir.php?id=<?= (int)$e['id'] ?>"
-                    onclick="return confirm('Excluir este empréstimo?')"
+                    href="#"
+                    data-action="excluir"
+                    data-id="<?= (int)$e['id'] ?>"
+                    data-livro="<?= $livroAttr ?>"
+                    data-usuario="<?= $userAttr ?>"
                     title="Excluir">
                     <i class="bi bi-trash"></i>
                   </a>
@@ -236,7 +292,6 @@ function montaLink($p, $q, $status)
           </li>
 
           <?php
-          // janela de páginas
           $janela = 2;
           $ini = max(1, $pagina - $janela);
           $fimPag = min($total_paginas, $pagina + $janela);
@@ -261,8 +316,77 @@ function montaLink($p, $q, $status)
   </div>
 </div>
 
+<!-- =========================================================
+     MODAL: DEVOLVER
+     ========================================================= -->
+<div class="modal fade" id="modalDevolver" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-check2-circle me-2"></i>Confirmar devolução
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-2 text-muted">Você está prestes a devolver:</div>
+        <div class="fw-semibold" id="modalDevLivro">Livro</div>
+        <div class="text-muted small mt-1">Para: <span id="modalDevUsuario">Usuário</span></div>
+
+        <div class="alert alert-success mt-3 mb-0" style="border-radius:12px;">
+          Isso vai marcar o empréstimo como devolvido e liberar o exemplar no acervo.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <a href="#" class="btn btn-success" id="btnConfirmarDevolver">
+          <i class="bi bi-check2-circle me-1"></i> Confirmar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: EXCLUIR
+     ========================================================= -->
+<div class="modal fade" id="modalExcluir" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-trash me-2"></i>Excluir empréstimo
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-2 text-muted">Você está prestes a excluir:</div>
+        <div class="fw-semibold" id="modalExcLivro">Livro</div>
+        <div class="text-muted small mt-1">Usuário: <span id="modalExcUsuario">Usuário</span></div>
+
+        <div class="alert alert-warning mt-3 mb-0" style="border-radius:12px;">
+          Atenção: excluir remove o registro do empréstimo do sistema.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <a href="#" class="btn btn-danger" id="btnConfirmarExcluir">
+          <i class="bi bi-trash me-1"></i> Excluir
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   (function() {
+    // =========================================================
+    // PARTE 1: BUSCA / FILTRO / PAGINAÇÃO via fetch (AJAX)
+    // =========================================================
     const input = document.getElementById('search');
     const status = document.getElementById('status');
     const tbody = document.getElementById('tbody-emprestimos');
@@ -270,11 +394,9 @@ function montaLink($p, $q, $status)
     const resumo = document.getElementById('resumo-emprestimos');
 
     let timer = null;
-    let paginaAtual = <?= (int)$pagina ?>;
 
+    // Carrega a tabela pelo endpoint buscar.php (retorna HTML das linhas + paginação)
     async function load(p = 1) {
-      paginaAtual = p;
-
       const q = input.value.trim();
       const s = status.value;
 
@@ -285,12 +407,11 @@ function montaLink($p, $q, $status)
 
       try {
         const res = await fetch(url.toString(), {
-          headers: {
-            'X-Requested-With': 'fetch'
-          }
+          headers: { 'X-Requested-With': 'fetch' }
         });
         const data = await res.json();
 
+        // Atualiza só pedaços da tela (sem reload)
         tbody.innerHTML = data.rows;
         pagWrap.innerHTML = data.pagination;
         resumo.textContent = data.summary;
@@ -300,6 +421,7 @@ function montaLink($p, $q, $status)
       }
     }
 
+    // Debounce: evita chamar o servidor a cada tecla
     function debounceLoad() {
       clearTimeout(timer);
       timer = setTimeout(() => load(1), 250);
@@ -308,7 +430,7 @@ function montaLink($p, $q, $status)
     input.addEventListener('input', debounceLoad);
     status.addEventListener('change', () => load(1));
 
-    // clique na paginação (delegação)
+    // Paginação: delegação (clicou em qualquer link dentro do pagWrap)
     pagWrap.addEventListener('click', (ev) => {
       const a = ev.target.closest('a');
       if (!a) return;
@@ -318,6 +440,75 @@ function montaLink($p, $q, $status)
       const p = parseInt(url.searchParams.get('p') || '1', 10);
       load(p);
     });
+
+    // =========================================================
+    // PARTE 2: MODAIS BONITOS (Devolver / Excluir)
+    // =========================================================
+    const modalDevolverEl = document.getElementById('modalDevolver');
+    const modalExcluirEl  = document.getElementById('modalExcluir');
+
+    const modalDevLivro   = document.getElementById('modalDevLivro');
+    const modalDevUsuario = document.getElementById('modalDevUsuario');
+    const btnDev          = document.getElementById('btnConfirmarDevolver');
+
+    const modalExcLivro   = document.getElementById('modalExcLivro');
+    const modalExcUsuario = document.getElementById('modalExcUsuario');
+    const btnExc          = document.getElementById('btnConfirmarExcluir');
+
+    // Pega (ou cria) instância do modal na hora do clique (evita bug de bootstrap)
+    function getModalInstance(el) {
+      if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
+      return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+    }
+
+    // Delegação no tbody:
+    // funciona mesmo quando o tbody muda (porque você faz fetch e substitui HTML)
+    tbody.addEventListener('click', (e) => {
+      const btnDevolver = e.target.closest("[data-action='devolver']");
+      const btnExcluir  = e.target.closest("[data-action='excluir']");
+
+      if (!btnDevolver && !btnExcluir) return;
+      e.preventDefault();
+
+      const btn = btnDevolver || btnExcluir;
+      const id = btn.getAttribute('data-id');
+      const livro = btn.getAttribute('data-livro') || 'Livro';
+      const usuario = btn.getAttribute('data-usuario') || 'Usuário';
+
+      // -------- Modal DEVOLVER --------
+      if (btnDevolver) {
+        const modal = getModalInstance(modalDevolverEl);
+
+        // fallback: se bootstrap não carregar, vai direto
+        if (!modal) {
+          window.location.href = `devolver.php?id=${encodeURIComponent(id)}`;
+          return;
+        }
+
+        modalDevLivro.textContent = livro;
+        modalDevUsuario.textContent = usuario;
+        btnDev.href = `devolver.php?id=${encodeURIComponent(id)}`;
+
+        modal.show();
+        return;
+      }
+
+      // -------- Modal EXCLUIR --------
+      const modal = getModalInstance(modalExcluirEl);
+      if (!modal) {
+        window.location.href = `excluir.php?id=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      modalExcLivro.textContent = livro;
+      modalExcUsuario.textContent = usuario;
+      btnExc.href = `excluir.php?id=${encodeURIComponent(id)}`;
+
+      modal.show();
+    });
+
+    // Se você quiser já carregar a primeira página via AJAX, descomenta:
+    // load(1);
   })();
 </script>
 

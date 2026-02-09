@@ -1,4 +1,10 @@
 <?php
+// emprestimos/buscar.php
+// Retorna JSON com:
+// - rows: HTML das linhas da tabela (tbody)
+// - pagination: HTML da paginação
+// - summary: texto de resumo
+
 include("../auth/auth_guard.php");
 include("../conexao.php");
 
@@ -6,19 +12,28 @@ header('Content-Type: application/json; charset=utf-8');
 
 $hoje = date('Y-m-d');
 
+// ===============================
+// PAGINAÇÃO
+// ===============================
 $por_pagina = 10;
 $pagina = isset($_GET['p']) ? (int)$_GET['p'] : 1;
 if ($pagina < 1) $pagina = 1;
 $offset = ($pagina - 1) * $por_pagina;
 
+// ===============================
+// FILTROS
+// ===============================
 $q = trim($_GET['q'] ?? '');
 $status = trim($_GET['status'] ?? '');
 
-// WHERE
+// ===============================
+// MONTA WHERE + PARAMS (prepared statements)
+// ===============================
 $where = [];
 $params = [];
 $types = "";
 
+// Busca por usuário ou livro
 if ($q !== '') {
   $where[] = "(u.nome LIKE ? OR l.titulo LIKE ?)";
   $like = "%{$q}%";
@@ -27,6 +42,7 @@ if ($q !== '') {
   $types .= "ss";
 }
 
+// Filtro por status
 if ($status === 'devolvido') {
   $where[] = "e.devolvido = 1";
 } elseif ($status === 'atrasado') {
@@ -41,7 +57,9 @@ if ($status === 'devolvido') {
 
 $whereSql = count($where) ? ("WHERE " . implode(" AND ", $where)) : "";
 
-// COUNT
+// ===============================
+// COUNT TOTAL (pra paginação)
+// ===============================
 $sqlCount = "
   SELECT COUNT(*) AS total
   FROM emprestimos e
@@ -55,11 +73,14 @@ mysqli_stmt_execute($stmtC);
 $resC = mysqli_stmt_get_result($stmtC);
 $total = (int)(mysqli_fetch_assoc($resC)['total'] ?? 0);
 
+// Ajusta página caso passe do limite
 $total_paginas = max(1, (int)ceil($total / $por_pagina));
 if ($pagina > $total_paginas) $pagina = $total_paginas;
 $offset = ($pagina - 1) * $por_pagina;
 
-// SELECT
+// ===============================
+// SELECT PAGINADO
+// ===============================
 $sql = "
   SELECT
     e.id,
@@ -79,6 +100,7 @@ $sql = "
 
 $stmt = mysqli_prepare($conn, $sql);
 
+// bind filtros + limit/offset
 $types2 = $types . "ii";
 $params2 = $params;
 $params2[] = $por_pagina;
@@ -88,23 +110,38 @@ mysqli_stmt_bind_param($stmt, $types2, ...$params2);
 mysqli_stmt_execute($stmt);
 $r = mysqli_stmt_get_result($stmt);
 
-// monta rows
+// ===============================
+// MONTA HTML DAS LINHAS (tbody)
+// Importante: aqui a gente gera os botões com data-action
+// pra abrir os MODAIS no listar.php
+// ===============================
 $rows = "";
 
 if ($total === 0) {
   $rows = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhum empréstimo encontrado.</td></tr>';
 } else {
   while ($e = mysqli_fetch_assoc($r)) {
+    $id = (int)$e['id'];
+
     $devolvido = (int)$e['devolvido'];
     $prevista  = $e['data_prevista'] ?? null;
     $atrasado  = ($devolvido === 0 && !empty($prevista) && $prevista < $hoje);
 
+    // Escapes:
+    // - HTML normal nas células
+    // - ENT_QUOTES nos data-* (pra não quebrar atributo)
+    $usuarioCell = htmlspecialchars($e['usuario_nome']);
+    $livroCell   = htmlspecialchars($e['livro_titulo']);
+
+    $usuarioAttr = htmlspecialchars($e['usuario_nome'], ENT_QUOTES);
+    $livroAttr   = htmlspecialchars($e['livro_titulo'], ENT_QUOTES);
+
     ob_start();
-    ?>
+?>
     <tr>
-      <td class="text-muted fw-semibold">#<?= (int)$e['id'] ?></td>
-      <td class="fw-semibold"><?= htmlspecialchars($e['usuario_nome']) ?></td>
-      <td><?= htmlspecialchars($e['livro_titulo']) ?></td>
+      <td class="text-muted fw-semibold">#<?= $id ?></td>
+      <td class="fw-semibold"><?= $usuarioCell ?></td>
+      <td><?= $livroCell ?></td>
 
       <td><?= htmlspecialchars($e['data_emprestimo']) ?></td>
       <td><?= htmlspecialchars($e['data_prevista'] ?? '-') ?></td>
@@ -112,42 +149,61 @@ if ($total === 0) {
 
       <td>
         <?php if ($devolvido === 1) { ?>
-          <span class="badge-status badge-done"><i class="bi bi-check-circle"></i> Devolvido</span>
+          <span class="badge-status badge-done">
+            <i class="bi bi-check-circle"></i> Devolvido
+          </span>
         <?php } elseif ($atrasado) { ?>
-          <span class="badge-status badge-late"><i class="bi bi-exclamation-circle"></i> Atrasado</span>
+          <span class="badge-status badge-late">
+            <i class="bi bi-exclamation-circle"></i> Atrasado
+          </span>
         <?php } else { ?>
-          <span class="badge-status badge-open"><i class="bi bi-clock-history"></i> Aberto</span>
+          <span class="badge-status badge-open">
+            <i class="bi bi-clock-history"></i> Aberto
+          </span>
         <?php } ?>
       </td>
 
       <td class="text-end">
         <?php if ($devolvido === 0) { ?>
-          <a class="icon-btn icon-btn--edit" href="editar.php?id=<?= (int)$e['id'] ?>" title="Editar">
+          <!-- Editar (normal) -->
+          <a class="icon-btn icon-btn--edit"
+             href="editar.php?id=<?= $id ?>"
+             title="Editar">
             <i class="bi bi-pencil"></i>
           </a>
 
+          <!-- Devolver (abre modal) -->
           <a class="icon-btn icon-btn--edit"
-             href="devolver.php?id=<?= (int)$e['id'] ?>"
-             onclick="return confirm('Confirmar devolução?')"
+             href="#"
+             data-action="devolver"
+             data-id="<?= $id ?>"
+             data-livro="<?= $livroAttr ?>"
+             data-usuario="<?= $usuarioAttr ?>"
              title="Devolver">
             <i class="bi bi-check2-circle"></i>
           </a>
         <?php } ?>
 
+        <!-- Excluir (abre modal) -->
         <a class="icon-btn icon-btn--del"
-           href="excluir.php?id=<?= (int)$e['id'] ?>"
-           onclick="return confirm('Excluir este empréstimo?')"
+           href="#"
+           data-action="excluir"
+           data-id="<?= $id ?>"
+           data-livro="<?= $livroAttr ?>"
+           data-usuario="<?= $usuarioAttr ?>"
            title="Excluir">
           <i class="bi bi-trash"></i>
         </a>
       </td>
     </tr>
-    <?php
+<?php
     $rows .= ob_get_clean();
   }
 }
 
-// monta paginação (HTML)
+// ===============================
+// PAGINAÇÃO (HTML)
+// ===============================
 function montaLink($p, $q, $status) {
   $qs = [];
   if ($p) $qs['p'] = $p;
@@ -179,10 +235,16 @@ $pagination .= '<li class="page-item ' . (($pagina >= $total_paginas) ? 'disable
 
 $pagination .= '</ul>';
 
+// ===============================
+// RESUMO
+// ===============================
 $inicio = ($total === 0) ? 0 : ($offset + 1);
 $fim = min($offset + $por_pagina, $total);
 $summary = "Mostrando {$inicio}–{$fim} de {$total} empréstimos";
 
+// ===============================
+// SAÍDA JSON
+// ===============================
 echo json_encode([
   "rows" => $rows,
   "pagination" => $pagination,

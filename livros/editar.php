@@ -1,16 +1,12 @@
 <?php
 $titulo_pagina = "Editar Livro";
+include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
 $id = (int)($_GET['id'] ?? 0);
 
-$stmt = mysqli_prepare($conn, "
-  SELECT l.*, c.codigo AS cdd_codigo, c.descricao AS cdd_descricao
-  FROM livros l
-  LEFT JOIN cdd c ON c.id = l.categoria
-  WHERE l.id = ?
-");
+$stmt = mysqli_prepare($conn, "SELECT * FROM livros WHERE id = ?");
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
@@ -21,12 +17,7 @@ if (!$l) { ?>
     <div class="alert alert-danger mb-0">Livro não encontrado.</div>
   </div>
   <?php include("../includes/footer.php"); exit; ?>
-<?php }
-
-$qtd_total = (int)($l['qtd_total'] ?? 1);
-$qtd_disp  = (int)($l['qtd_disp'] ?? 0);
-$qtd_emp   = max(0, $qtd_total - $qtd_disp);
-?>
+<?php } ?>
 
 <div class="container my-4">
   <div class="page-card">
@@ -39,7 +30,8 @@ $qtd_emp   = max(0, $qtd_total - $qtd_disp);
       </a>
     </div>
 
-    <form action="atualizar.php" method="post" class="form-grid" autocomplete="off">
+    <!-- enctype por causa do upload -->
+    <form action="atualizar.php" method="post" class="form-grid" autocomplete="off" enctype="multipart/form-data">
       <input type="hidden" name="id" value="<?= (int)$l['id'] ?>">
 
       <div class="row g-3">
@@ -53,64 +45,56 @@ $qtd_emp   = max(0, $qtd_total - $qtd_disp);
           <input class="form-control" name="autor" value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
         </div>
 
-        <div class="col-md-2">
+        <div class="col-md-3">
           <label class="form-label">Ano</label>
           <input class="form-control" type="number" name="ano_publicacao" min="0"
-                 value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
+            value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label">ISBN</label>
-          <input class="form-control" name="ISBN" id="isbn" maxlength="20"
-                 value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
+          <input class="form-control" name="ISBN" maxlength="32"
+            value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
+          <div class="form-text">Pode colar com traço. O sistema limpa e salva só números.</div>
+        </div>
 
-          <!-- Preview da capa (não salva no banco) -->
-          <div class="mt-2 d-flex align-items-center gap-3">
-            <img
-              id="isbnCoverPreview"
-              src=""
-              alt="Capa do livro"
-              style="width:64px;height:96px;object-fit:cover;border-radius:10px;display:none;border:1px solid #e7e1d6;"
-              onerror="this.style.display='none';">
-            <div class="text-muted small" id="isbnCoverHint">Digite um ISBN para ver a capa.</div>
-          </div>
+        <!-- Categoria simples (se você já usa CDD autocomplete em outros arquivos, pode plugar igual aqui) -->
+        <div class="col-md-4">
+          <label class="form-label">Categoria (CDD)</label>
+          <input class="form-control" name="categoria" value="<?= htmlspecialchars($l['categoria'] ?? '') ?>">
+        </div>
+
+        <!-- Quantidade -->
+        <div class="col-md-4">
+          <label class="form-label">Total atual</label>
+          <input class="form-control" value="<?= (int)($l['qtd_total'] ?? 0) ?>" disabled>
         </div>
 
         <div class="col-md-4">
-          <label class="form-label">Quantidade total</label>
-          <input class="form-control" type="number" name="qtd_total" min="<?= $qtd_emp ?>" value="<?= $qtd_total ?>" required>
-          <div class="form-text">Emprestados agora: <strong><?= $qtd_emp ?></strong>. O total não pode ser menor que isso.</div>
+          <label class="form-label">Adicionar exemplares</label>
+          <input class="form-control" type="number" name="qtd_add" min="0" value="0">
+        </div>
+
+        <!-- Capa -->
+        <div class="col-md-6">
+          <label class="form-label">Capa por URL (opcional)</label>
+          <input class="form-control" name="capa_url" placeholder="Cole um link de imagem (https://...)"
+            value="<?= htmlspecialchars($l['capa_url'] ?? '') ?>">
+          <div class="form-text">Se preencher, vira a capa do livro.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Upload de capa (opcional)</label>
+          <input class="form-control" type="file" name="capa_upload" accept="image/*">
         </div>
 
         <div class="col-md-4">
-          <label class="form-label">Disponíveis</label>
-          <input class="form-control" value="<?= $qtd_disp ?>" disabled>
-        </div>
-
-        <div class="col-md-4">
-          <label class="form-label">Emprestados</label>
-          <input class="form-control" value="<?= $qtd_emp ?>" disabled>
-        </div>
-
-        <!-- CDD -->
-        <div class="col-12 position-relative">
-          <label class="form-label">CDD (Categoria)</label>
-
-          <input type="text" id="cdd" class="form-control"
-            placeholder="Digite o código ou área"
-            autocomplete="off"
-            value="<?= htmlspecialchars(
-              ($l['cdd_codigo'] && $l['cdd_descricao'])
-                ? $l['cdd_codigo'] . ' - ' . $l['cdd_descricao']
-                : ''
-            ) ?>">
-
-          <input type="hidden" name="categoria" id="categoria"
-            value="<?= (int)($l['categoria'] ?? 0) ?>">
-
-          <div id="resultadoCDD" class="list-group position-absolute w-100" style="z-index:1050"></div>
-
-          <div class="form-text">Clique numa sugestão para alterar a categoria.</div>
+          <label class="form-label">Disponível (ativo no acervo)</label>
+          <select class="form-select" name="disponivel">
+            <option value="1" <?= ((int)$l['disponivel'] === 1) ? "selected" : "" ?>>Sim</option>
+            <option value="0" <?= ((int)$l['disponivel'] === 0) ? "selected" : "" ?>>Não</option>
+          </select>
+          <div class="form-text">Se estiver “Não”, ele fica baixado do acervo.</div>
         </div>
       </div>
 
@@ -126,118 +110,6 @@ $qtd_emp   = max(0, $qtd_total - $qtd_disp);
   </div>
 </div>
 
-<script>
-  // ===== CDD autocomplete =====
-  const inputCDD = document.getElementById("cdd");
-  const resultadoCDD = document.getElementById("resultadoCDD");
-  const hiddenCat = document.getElementById("categoria");
 
-  function limparCDD() { resultadoCDD.innerHTML = ""; }
-
-  inputCDD?.addEventListener("keyup", () => {
-    const q = inputCDD.value.trim();
-    hiddenCat.value = "";
-
-    if (q.length < 2) { limparCDD(); return; }
-
-    fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
-      .then(r => r.text())
-      .then(html => resultadoCDD.innerHTML = html)
-      .catch(() => limparCDD());
-  });
-
-  resultadoCDD?.addEventListener("click", (e) => {
-    const item = e.target.closest("[data-id]");
-    if (!item) return;
-
-    inputCDD.value = item.dataset.text;
-    hiddenCat.value = item.dataset.id;
-    limparCDD();
-  });
-
-  document.addEventListener("click", (e) => {
-    if (e.target === inputCDD || resultadoCDD.contains(e.target)) return;
-    limparCDD();
-  });
-
-  // ===== Preview da capa por ISBN (Open Library) =====
-  const isbnInput = document.getElementById('isbn');
-  const imgPrev = document.getElementById('isbnCoverPreview');
-  const hint = document.getElementById('isbnCoverHint');
-
-  function isbnDigits(v){ return (v || '').replace(/\D/g, ''); }
-
-  function updateCover(){
-    const d = isbnDigits(isbnInput?.value);
-    if (!d || (d.length !== 10 && d.length !== 13)) {
-      imgPrev.style.display = 'none';
-      imgPrev.src = '';
-      hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
-      return;
-    }
-
-    const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
-
-    imgPrev.onload = () => {
-      imgPrev.style.display = 'block';
-      hint.textContent = 'Capa encontrada (Open Library).';
-    };
-
-    imgPrev.onerror = () => {
-      imgPrev.style.display = 'none';
-      hint.textContent = 'Sem capa para este ISBN (Open Library).';
-    };
-
-    imgPrev.src = url;
-  }
-
-  let t = null;
-  isbnInput?.addEventListener('input', () => {
-    clearTimeout(t);
-    t = setTimeout(updateCover, 250);
-  });
-
-  async function updateCover() {
-  const d = isbnDigits(isbnInput?.value);
-  if (!d || (d.length !== 10 && d.length !== 13)) {
-    imgPrev.style.display = 'none';
-    imgPrev.src = '';
-    hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
-    return;
-  }
-
-  // 1. Tenta Open Library primeiro
-  const urlOL = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
-  
-  imgPrev.onload = () => {
-    imgPrev.style.display = 'block';
-    hint.textContent = 'Capa encontrada (Open Library).';
-  };
-
-  imgPrev.onerror = async () => {
-    // 2. Se falhar, tenta Google Books
-    hint.textContent = 'Buscando no Google Books...';
-    try {
-      const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${d}`);
-      const data = await resp.json();
-      
-      if (data.totalItems > 0 && data.items[0].volumeInfo.imageLinks) {
-        const urlGoogle = data.items[0].volumeInfo.imageLinks.thumbnail.replace('http:', 'https:');
-        imgPrev.src = urlGoogle;
-        imgPrev.style.display = 'block';
-        hint.textContent = 'Capa encontrada (Google Books).';
-      } else {
-        imgPrev.style.display = 'none';
-        hint.textContent = 'Sem capa disponível para este ISBN.';
-      }
-    } catch (e) {
-      imgPrev.style.display = 'none';
-      hint.textContent = 'Erro ao buscar capa.';
-    }
-  };
-
-  imgPrev.src = urlOL;
-}
-</script>
 
 <?php include("../includes/footer.php"); ?>

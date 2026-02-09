@@ -14,8 +14,16 @@ include("../includes/header.php");
       </a>
     </div>
 
-    <form action="salvar.php" method="post" class="form-grid" autocomplete="off">
+    <!--
+      Envia:
+      - titulo, autor, ano_publicacao, ISBN, qtd_total
+      - categoria (id do CDD)
+      - capa_url (string) -> pode vir da API, de URL manual ou de upload local
+      - capa_arquivo (upload) -> salvamos no servidor e colocamos o caminho em capa_url
+    -->
+    <form action="salvar.php" method="post" class="form-grid" autocomplete="off" enctype="multipart/form-data">
       <div class="row g-3">
+
         <div class="col-12">
           <label class="form-label">Título</label>
           <input class="form-control" name="titulo" required placeholder="Ex: Dom Casmurro">
@@ -37,21 +45,24 @@ include("../includes/header.php");
             class="form-control"
             name="ISBN"
             id="isbn"
-            maxlength="20"
             placeholder="Digite o ISBN (com ou sem traços)"
             autocomplete="off"
             required>
 
-          <!-- Preview da capa (não salva no banco) -->
+          <!-- Preview + status da capa -->
           <div class="mt-2 d-flex align-items-center gap-3">
             <img
-              id="isbnCoverPreview"
+              id="coverPreview"
               src=""
               alt="Capa do livro"
               style="width:64px;height:96px;object-fit:cover;border-radius:10px;display:none;border:1px solid #e7e1d6;"
               onerror="this.style.display='none';">
-            <div class="text-muted small" id="isbnCoverHint">Digite um ISBN para ver a capa.</div>
+
+            <div class="text-muted small" id="coverHint">Digite um ISBN para buscar a capa.</div>
           </div>
+
+          <!-- Guarda a capa que será salva (url final) -->
+          <input type="hidden" name="capa_url" id="capa_url" value="">
         </div>
 
         <div class="col-md-3">
@@ -60,24 +71,43 @@ include("../includes/header.php");
           <div class="form-text">Ao cadastrar, todos os exemplares entram como disponíveis.</div>
         </div>
 
-        <!-- CDD -->
+        <!-- CDD (categoria com busca dinâmica) -->
         <div class="col-12 position-relative">
           <label class="form-label">CDD (Categoria)</label>
 
           <input type="text" id="cdd" class="form-control"
             placeholder="Digite o código ou área"
-            autocomplete="off">
+            autocomplete="off" required>
 
-          <input type="hidden" name="categoria" id="categoria" value="">
-
-          <div id="resultadoCDD" class="list-group position-absolute w-100" style="z-index: 1050;"></div>
+          <input type="hidden" name="categoria" id="categoria">
+          <div id="resultadoCDD" class="list-group position-absolute w-100" style="z-index:1050;"></div>
 
           <div class="form-text">Clique numa sugestão para preencher a categoria.</div>
         </div>
+
+        <!-- Plano B: se API não achar capa -->
+        <div class="col-12">
+          <div class="row g-2">
+
+            <div class="col-md-6">
+              <label class="form-label">Capa por URL (opcional)</label>
+              <input class="form-control" id="capa_url_manual" placeholder="Cole um link de imagem (https://...)">
+              <div class="form-text">Se preencher aqui, essa URL vira a capa (e ignora a API).</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Upload de capa (opcional)</label>
+              <input class="form-control" type="file" name="capa_arquivo" id="capa_arquivo" accept="image/*">
+              <div class="form-text">Se enviar arquivo, ele vira a capa. No banco fica só o caminho.</div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
-      <div class="form-actions">
-        <button class="btn btn-pill" type="submit">
+      <div class="form-actions mt-3">
+        <button class="btn btn-brand" type="submit">
           <i class="bi bi-check2"></i>
           Salvar
         </button>
@@ -89,117 +119,115 @@ include("../includes/header.php");
 </div>
 
 <script>
-  // ===== CDD autocomplete =====
+  // ============ Helpers ============
+  function onlyDigits(s){ return (s || '').replace(/\D/g, ''); }
+
+  // ============ CDD autocomplete ============
   const inputCDD = document.getElementById("cdd");
   const resultadoCDD = document.getElementById("resultadoCDD");
   const hiddenCat = document.getElementById("categoria");
 
-  function limparCDD() { resultadoCDD.innerHTML = ""; }
-
-  inputCDD?.addEventListener("keyup", () => {
+  inputCDD.addEventListener("keyup", () => {
     const q = inputCDD.value.trim();
-    hiddenCat.value = "";
-
-    if (q.length < 2) { limparCDD(); return; }
+    if (q.length < 2) { resultadoCDD.innerHTML = ""; return; }
 
     fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
-      .then(r => r.text())
-      .then(html => resultadoCDD.innerHTML = html)
-      .catch(() => limparCDD());
+      .then(res => res.text())
+      .then(html => resultadoCDD.innerHTML = html);
   });
 
-  resultadoCDD?.addEventListener("click", (e) => {
+  resultadoCDD.addEventListener("click", (e) => {
     const item = e.target.closest("[data-id]");
     if (!item) return;
 
-    inputCDD.value = item.dataset.text;
-    hiddenCat.value = item.dataset.id;
-    limparCDD();
+    inputCDD.value = item.dataset.text || "";
+    hiddenCat.value = item.dataset.id || "";
+    resultadoCDD.innerHTML = "";
   });
 
-  document.addEventListener("click", (e) => {
-    if (e.target === inputCDD || resultadoCDD.contains(e.target)) return;
-    limparCDD();
+  // ============ Capa por ISBN (OpenLibrary -> Google Books) ============
+  const isbnInput   = document.getElementById("isbn");
+  const imgPrev     = document.getElementById("coverPreview");
+  const hint        = document.getElementById("coverHint");
+  const capaHidden  = document.getElementById("capa_url");
+
+  // inputs de override
+  const capaManual = document.getElementById("capa_url_manual");
+  const capaFile   = document.getElementById("capa_arquivo");
+
+  // Quando o usuário coloca URL manual, a gente usa ela como capa
+  capaManual.addEventListener("input", () => {
+    const url = capaManual.value.trim();
+    if (!url) return;
+
+    capaHidden.value = url;
+    imgPrev.src = url;
+    imgPrev.style.display = "block";
+    hint.textContent = "Capa definida por URL manual.";
   });
 
-  // ===== Preview da capa por ISBN (Open Library) =====
-  const isbnInput = document.getElementById('isbn');
-  const imgPrev = document.getElementById('isbnCoverPreview');
-  const hint = document.getElementById('isbnCoverHint');
+  // Preview do upload local (não salva aqui, só mostra)
+  capaFile.addEventListener("change", () => {
+    const f = capaFile.files && capaFile.files[0];
+    if (!f) return;
 
-  function isbnDigits(v){ return (v || '').replace(/\D/g, ''); }
+    const url = URL.createObjectURL(f);
+    imgPrev.src = url;
+    imgPrev.style.display = "block";
+    hint.textContent = "Capa definida por upload (vai salvar no servidor).";
 
-  function updateCover(){
-    const d = isbnDigits(isbnInput?.value);
+    // Importante: o caminho real vai ser definido no salvar.php,
+    // então a gente só limpa o hidden pra não brigar com URL antiga.
+    capaHidden.value = "";
+  });
+
+  let t = null;
+  isbnInput.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(buscarCapaPorIsbn, 300);
+  });
+
+  async function buscarCapaPorIsbn(){
+    // Se o usuário já colocou URL manual ou upload, a gente não atrapalha
+    if (capaManual.value.trim()) return;
+    if (capaFile.files && capaFile.files.length) return;
+
+    const d = onlyDigits(isbnInput.value);
     if (!d || (d.length !== 10 && d.length !== 13)) {
-      imgPrev.style.display = 'none';
-      imgPrev.src = '';
-      hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
+      imgPrev.style.display = "none";
+      imgPrev.src = "";
+      capaHidden.value = "";
+      hint.textContent = "Digite um ISBN válido (10 ou 13 dígitos) para buscar a capa.";
       return;
     }
 
-    const url = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
+    hint.textContent = "Buscando capa...";
+    imgPrev.style.display = "none";
+    imgPrev.src = "";
 
-    imgPrev.onload = () => {
-      imgPrev.style.display = 'block';
-      hint.textContent = 'Capa encontrada (Open Library).';
-    };
-
-    imgPrev.onerror = () => {
-      imgPrev.style.display = 'none';
-      hint.textContent = 'Sem capa para este ISBN (Open Library).';
-    };
-
-    imgPrev.src = url;
-  }
-
-  let t = null;
-  isbnInput?.addEventListener('input', () => {
-    clearTimeout(t);
-    t = setTimeout(updateCover, 250);
-  });
-
-  async function updateCover() {
-  const d = isbnDigits(isbnInput?.value);
-  if (!d || (d.length !== 10 && d.length !== 13)) {
-    imgPrev.style.display = 'none';
-    imgPrev.src = '';
-    hint.textContent = 'Digite um ISBN válido (10 ou 13 dígitos) para ver a capa.';
-    return;
-  }
-
-  // 1. Tenta Open Library primeiro
-  const urlOL = `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(d)}-M.jpg?default=false`;
-  
-  imgPrev.onload = () => {
-    imgPrev.style.display = 'block';
-    hint.textContent = 'Capa encontrada (Open Library).';
-  };
-
-  imgPrev.onerror = async () => {
-    // 2. Se falhar, tenta Google Books
-    hint.textContent = 'Buscando no Google Books...';
-    try {
-      const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${d}`);
+    try{
+      // Chama nosso backend (sem CORS e com fallback correto)
+      const resp = await fetch(`buscar_capa.php?isbn=${encodeURIComponent(d)}`, {
+        headers: { "X-Requested-With": "fetch" }
+      });
       const data = await resp.json();
-      
-      if (data.totalItems > 0 && data.items[0].volumeInfo.imageLinks) {
-        const urlGoogle = data.items[0].volumeInfo.imageLinks.thumbnail.replace('http:', 'https:');
-        imgPrev.src = urlGoogle;
-        imgPrev.style.display = 'block';
-        hint.textContent = 'Capa encontrada (Google Books).';
-      } else {
-        imgPrev.style.display = 'none';
-        hint.textContent = 'Sem capa disponível para este ISBN.';
-      }
-    } catch (e) {
-      imgPrev.style.display = 'none';
-      hint.textContent = 'Erro ao buscar capa.';
-    }
-  };
 
-  imgPrev.src = urlOL;
-}
+      if (data && data.ok && data.url) {
+        capaHidden.value = data.url;             // salva só a URL/caminho
+        imgPrev.src = data.url;
+        imgPrev.style.display = "block";
+        hint.textContent = `Capa encontrada (${data.source}).`;
+      } else {
+        capaHidden.value = "";
+        hint.textContent = "Sem capa encontrada nas APIs. Você pode colar uma URL ou enviar uma imagem.";
+      }
+    }catch(e){
+      capaHidden.value = "";
+      hint.textContent = "Erro ao buscar capa. Use URL manual ou upload.";
+    }
+  }
 </script>
+
+
 
 <?php include("../includes/footer.php"); ?>

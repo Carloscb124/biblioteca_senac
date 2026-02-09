@@ -4,8 +4,7 @@ include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
-// ===== CONFIG =====
-$por_pagina = 10;
+// Só pra manter o input preenchido no primeiro load
 $q = trim($_GET['q'] ?? '');
 ?>
 
@@ -73,9 +72,7 @@ $q = trim($_GET['q'] ?? '');
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px; overflow:hidden;">
       <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-box-arrow-down me-2"></i>Baixar livro
-        </h5>
+        <h5 class="modal-title"><i class="bi bi-box-arrow-down me-2"></i>Baixar livro</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
@@ -90,7 +87,6 @@ $q = trim($_GET['q'] ?? '');
 
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-
         <a href="#" class="btn btn-danger" id="btnConfirmarBaixar">
           <i class="bi bi-box-arrow-down me-1"></i> Baixar
         </a>
@@ -104,9 +100,7 @@ $q = trim($_GET['q'] ?? '');
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px; overflow:hidden;">
       <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-arrow-up-circle me-2"></i>Reativar livro
-        </h5>
+        <h5 class="modal-title"><i class="bi bi-arrow-up-circle me-2"></i>Reativar livro</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
@@ -115,13 +109,12 @@ $q = trim($_GET['q'] ?? '');
         <div class="fw-semibold fs-5" id="modalLivroTituloReativar">Livro</div>
 
         <div class="alert alert-success mt-3 mb-0" style="border-radius:12px;">
-          O livro volta para o acervo e os exemplares disponíveis serão restaurados.
+          O livro volta para o acervo e os disponíveis serão recalculados.
         </div>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-
         <a href="#" class="btn btn-success" id="btnConfirmarReativar">
           <i class="bi bi-arrow-up-circle me-1"></i> Reativar
         </a>
@@ -130,7 +123,176 @@ $q = trim($_GET['q'] ?? '');
   </div>
 </div>
 
+<!-- MODAL: DETALHES DO LIVRO -->
+<div class="modal fade" id="modalLivroDetalhes" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-book me-2"></i>Detalhes do livro
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="d-flex gap-3 align-items-start">
+          <img id="detCapa" src="" alt="Capa"
+               style="width:120px;height:180px;object-fit:cover;border-radius:12px;border:1px solid #e7e1d6;"
+               onerror="this.src=''; this.style.opacity=.4;">
+
+          <div class="flex-grow-1">
+            <div class="fw-semibold fs-4" id="detTitulo">Carregando...</div>
+            <div class="text-muted" id="detAutorAno"></div>
+
+            <div class="mt-2 d-flex flex-wrap gap-2">
+              <span class="badge text-bg-light" style="border:1px solid #e7e1d6;" id="detIsbn">ISBN: -</span>
+              <span class="badge text-bg-light" style="border:1px solid #e7e1d6;" id="detCdd">CDD: -</span>
+              <span class="badge text-bg-light" style="border:1px solid #e7e1d6;" id="detQtd">Disponíveis: -</span>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="fw-semibold mb-1">Sinopse</div>
+        <div id="detSinopse" class="text-muted" style="white-space:pre-line;">
+          Carregando sinopse...
+        </div>
+
+        <div id="detFonte" class="mt-2 small text-muted"></div>
+      </div>
+
+      <div class="modal-footer">
+        <a class="btn btn-outline-secondary" id="detEditar" href="#">
+          <i class="bi bi-pencil me-1"></i>Editar
+        </a>
+        <button type="button" class="btn btn-brand" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ===== Modal de detalhes do livro =====
+  const modalDetEl = document.getElementById("modalLivroDetalhes");
+
+  // elementos do modal
+  const detCapa = document.getElementById("detCapa");
+  const detTitulo = document.getElementById("detTitulo");
+  const detAutorAno = document.getElementById("detAutorAno");
+  const detIsbn = document.getElementById("detIsbn");
+  const detCdd = document.getElementById("detCdd");
+  const detQtd = document.getElementById("detQtd");
+  const detSinopse = document.getElementById("detSinopse");
+  const detFonte = document.getElementById("detFonte");
+  const detEditar = document.getElementById("detEditar");
+
+  function getModalInstance(modalEl) {
+    if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
+    return bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  }
+
+  // Clique no título OU em qualquer lugar da linha (menos nos botões de ação)
+  tbody.addEventListener("click", async (e) => {
+    // se clicou em algum botão de ação, não abre detalhes
+    if (e.target.closest(".icon-btn")) return;
+
+    const row = e.target.closest("tr");
+    if (!row) return;
+
+  
+    const id = row.getAttribute("data-id");
+    if (!id) return;
+
+    e.preventDefault();
+
+    const modal = getModalInstance(modalDetEl);
+    if (!modal) return;
+
+    // estado inicial (loading)
+    detTitulo.textContent = "Carregando...";
+    detAutorAno.textContent = "";
+    detIsbn.textContent = "ISBN: -";
+    detCdd.textContent = "CDD: -";
+    detQtd.textContent = "Disponíveis: -";
+    detSinopse.textContent = "Carregando sinopse...";
+    detFonte.textContent = "";
+    detCapa.src = "";
+    detEditar.href = `editar.php?id=${encodeURIComponent(id)}`;
+
+    modal.show();
+
+    try {
+      const resp = await fetch(`detalhes.php?id=${encodeURIComponent(id)}`, {
+        headers: { "X-Requested-With": "fetch" }
+      });
+      const data = await resp.json();
+
+      if (!data.ok) {
+        detTitulo.textContent = "Não consegui carregar os detalhes";
+        detSinopse.textContent = data.message || "Erro desconhecido.";
+        return;
+      }
+
+      const b = data.book;
+
+      detTitulo.textContent = b.titulo || "-";
+      detAutorAno.textContent = `${b.autor || "-"}${b.ano ? " • " + b.ano : ""}`;
+      detIsbn.textContent = `ISBN: ${b.isbn || "-"}`;
+      detCdd.textContent = `CDD: ${b.cdd || "-"}`;
+      detQtd.textContent = `Disponíveis: ${b.qtd_disponivel}/${b.qtd_total}`;
+
+      detCapa.src = b.capa_url ? b.capa_url : "";
+      detSinopse.textContent = data.sinopse ? data.sinopse : "Sem sinopse encontrada nas APIs. (Triste, mas acontece 😅)";
+
+      if (data.source) {
+        detFonte.textContent = `Fonte da sinopse: ${data.source}`;
+      } else {
+        detFonte.textContent = "";
+      }
+
+    } catch (err) {
+      detTitulo.textContent = "Ops...";
+      detSinopse.textContent = "Erro ao buscar detalhes. Tenta de novo.";
+    }
+  });
+</script>
+
+
+<style>
+  /* Quebra de linha pra títulos/autores enormes não estourarem a tabela */
+  .cell-wrap{
+    max-width: 320px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Capa com tamanho consistente (sem ficar mini ou gigante) */
+  .cover-thumb{
+    width: 44px;
+    height: 62px;
+    border-radius: 10px;
+    object-fit: cover;
+    display:block;
+    border: 1px solid rgba(0,0,0,.06);
+    background: #efe9dd;
+  }
+  .cover-placeholder{
+    width: 44px;
+    height: 62px;
+    border-radius: 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border: 1px solid rgba(0,0,0,.06);
+    background: #efe9dd;
+    font-size: 10px;
+    color:#7a7a7a;
+  }
+</style>
+
+<script>
+  // ===== Busca dinâmica + paginação (sem reload) =====
   const input = document.getElementById("bookSearch");
   const tbody = document.getElementById("booksTbody");
   const pagWrap = document.getElementById("booksPagination");
@@ -139,9 +301,7 @@ $q = trim($_GET['q'] ?? '');
   function renderEmpty() {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center text-muted py-4">
-          Nenhum livro encontrado.
-        </td>
+        <td colspan="8" class="text-center text-muted py-4">Nenhum livro encontrado.</td>
       </tr>
     `;
     pagWrap.innerHTML = "";
@@ -154,9 +314,7 @@ $q = trim($_GET['q'] ?? '');
     if (!resp.ok) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center text-danger py-4">
-            Erro ao carregar. Tente novamente.
-          </td>
+          <td colspan="8" class="text-center text-danger py-4">Erro ao carregar. Tente novamente.</td>
         </tr>
       `;
       pagWrap.innerHTML = "";
@@ -167,6 +325,7 @@ $q = trim($_GET['q'] ?? '');
     tbody.innerHTML = data.rows_html?.trim() ? data.rows_html : (renderEmpty(), "");
     pagWrap.innerHTML = data.pagination_html || "";
 
+    // paginação sem reload
     pagWrap.querySelectorAll("[data-page]").forEach(a => {
       a.addEventListener("click", (e) => {
         e.preventDefault();
@@ -176,6 +335,7 @@ $q = trim($_GET['q'] ?? '');
     });
   }
 
+  // debounce da busca (pra não virar metralhadora de request)
   input.addEventListener("input", () => {
     clearTimeout(timer);
     timer = setTimeout(() => fetchBooks({ q: input.value.trim(), p: 1 }), 250);
@@ -183,7 +343,7 @@ $q = trim($_GET['q'] ?? '');
 
   fetchBooks({ q: input.value.trim(), p: 1 });
 
-  // ===== Bootstrap Modal: corrigido =====
+  // ===== Modais (delegação de evento - funciona com fetch) =====
   const modalBaixarEl = document.getElementById("modalBaixarLivro");
   const modalReativarEl = document.getElementById("modalReativarLivro");
 
@@ -193,11 +353,8 @@ $q = trim($_GET['q'] ?? '');
   const btnConfirmarBaixar = document.getElementById("btnConfirmarBaixar");
   const btnConfirmarReativar = document.getElementById("btnConfirmarReativar");
 
-  // Pega (ou cria) o modal sempre na hora do clique, não antes.
   function getModalInstance(modalEl) {
     if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
-
-    // se já existir instância, pega ela; senão cria
     return bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
   }
 
@@ -214,12 +371,7 @@ $q = trim($_GET['q'] ?? '');
 
     if (btnBaixar) {
       const modal = getModalInstance(modalBaixarEl);
-      // se por algum motivo não tiver bootstrap, redireciona direto (sem confirm feio)
-      if (!modal) {
-        window.location.href = `excluir.php?id=${encodeURIComponent(id)}`;
-        return;
-      }
-
+      if (!modal) { window.location.href = `excluir.php?id=${encodeURIComponent(id)}`; return; }
       tituloBaixar.textContent = titulo;
       btnConfirmarBaixar.href = `excluir.php?id=${encodeURIComponent(id)}`;
       modal.show();
@@ -227,11 +379,7 @@ $q = trim($_GET['q'] ?? '');
     }
 
     const modal = getModalInstance(modalReativarEl);
-    if (!modal) {
-      window.location.href = `reativar.php?id=${encodeURIComponent(id)}`;
-      return;
-    }
-
+    if (!modal) { window.location.href = `reativar.php?id=${encodeURIComponent(id)}`; return; }
     tituloReativar.textContent = titulo;
     btnConfirmarReativar.href = `reativar.php?id=${encodeURIComponent(id)}`;
     modal.show();

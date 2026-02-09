@@ -1,83 +1,77 @@
 <?php
+// livros/buscar.php
+// Retorna JSON com:
+// - rows_html: linhas da tabela (HTML pronto)
+// - pagination_html: paginação (HTML pronto)
+// Obs: cada <tr> vem com data-id="X" pra abrir o modal de detalhes ao clicar.
+
 include("../auth/auth_guard.php");
 include("../conexao.php");
 
 header("Content-Type: application/json; charset=UTF-8");
 
+// ===== Config de paginação =====
 $por_pagina = 10;
+$p = (int)($_GET['p'] ?? 1);
+if ($p < 1) $p = 1;
+
 $q = trim($_GET['q'] ?? '');
-$pagina = isset($_GET['p']) ? (int)$_GET['p'] : 1;
-if ($pagina < 1) $pagina = 1;
+$offset = ($p - 1) * $por_pagina;
 
-$offset = ($pagina - 1) * $por_pagina;
-$temBusca = ($q !== '');
-
-function esc($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
-function only_digits($v) { return preg_replace('/\D+/', '', (string)$v); }
-
-function cover_url_isbn_small($isbn_digits) {
-  if ($isbn_digits === '') return '';
-  return "https://covers.openlibrary.org/b/isbn/" . rawurlencode($isbn_digits) . "-S.jpg?default=false";
+// ===== Helpers =====
+function h($s) {
+  return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 }
-function cover_fallback_svg_datauri() {
-  $svg = "<svg xmlns='http://www.w3.org/2000/svg' width='38' height='56'>
-    <rect width='100%' height='100%' fill='#f1ece2'/>
-    <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
-      font-size='10' fill='#8a7f73'>Sem capa</text>
-  </svg>";
-  return "data:image/svg+xml;utf8," . rawurlencode($svg);
+function onlyDigits($s) {
+  return preg_replace('/\D+/', '', (string)$s);
 }
 
-/*
-  Disponíveis calculado na hora:
-  qtd_disp_calc = max(qtd_total - emprestimos_abertos, 0)
-*/
-$where = "WHERE 1=1";
+// ===== Monta WHERE da busca (prepared) =====
+$where = [];
 $params = [];
 $types = "";
 
-if ($temBusca) {
-  $where .= " AND (l.titulo LIKE ? OR l.autor LIKE ? OR l.ISBN LIKE ?)";
+if ($q !== '') {
+  $where[] = "(l.titulo LIKE ? OR l.autor LIKE ? OR l.ISBN LIKE ?)";
   $like = "%{$q}%";
-  $params[] = $like; $params[] = $like; $params[] = $like;
+  $params[] = $like;
+  $params[] = $like;
+  $params[] = $like;
   $types .= "sss";
 }
 
-// COUNT
-$sqlCount = "
-  SELECT COUNT(*) AS total
-  FROM livros l
-  $where
-";
-$stmtCount = mysqli_prepare($conn, $sqlCount);
-if ($types !== "") mysqli_stmt_bind_param($stmtCount, $types, ...$params);
-mysqli_stmt_execute($stmtCount);
-$resCount = mysqli_stmt_get_result($stmtCount);
-$total_registros = (int)mysqli_fetch_assoc($resCount)['total'];
+$whereSql = $where ? ("WHERE " . implode(" AND ", $where)) : "";
 
-$total_paginas = (int)ceil($total_registros / $por_pagina);
-if ($total_paginas < 1) $total_paginas = 1;
-if ($pagina > $total_paginas) $pagina = $total_paginas;
+// ===== Total de resultados (pra paginação) =====
+$sqlCount = "SELECT COUNT(*) AS total FROM livros l $whereSql";
+$stmtC = mysqli_prepare($conn, $sqlCount);
+if ($types !== "") {
+  mysqli_stmt_bind_param($stmtC, $types, ...$params);
+}
+mysqli_stmt_execute($stmtC);
+$resC = mysqli_stmt_get_result($stmtC);
+$total = (int)(mysqli_fetch_assoc($resC)['total'] ?? 0);
 
-$offset = ($pagina - 1) * $por_pagina;
+$total_paginas = max(1, (int)ceil($total / $por_pagina));
+if ($p > $total_paginas) $p = $total_paginas;
+$offset = ($p - 1) * $por_pagina;
 
-// SELECT com cálculo de empréstimos abertos
+// ===== Lista =====
+// Order: ativos primeiro (disponivel=1), depois mais recentes
 $sql = "
   SELECT
-    l.*,
-    c.codigo AS cdd_codigo,
-    c.descricao AS cdd_descricao,
-    COALESCE(SUM(CASE WHEN e.devolvido = 0 THEN 1 ELSE 0 END), 0) AS emprestimos_abertos
+    l.id, l.titulo, l.autor, l.ano_publicacao, l.ISBN,
+    l.categoria, l.qtd_total, l.qtd_disp, l.disponivel,
+    l.capa_url
   FROM livros l
-  LEFT JOIN cdd c ON c.id = l.categoria
-  LEFT JOIN emprestimos e ON e.id_livro = l.id
-  $where
-  GROUP BY l.id
+  $whereSql
   ORDER BY l.disponivel DESC, l.id DESC
   LIMIT ? OFFSET ?
 ";
 
 $stmt = mysqli_prepare($conn, $sql);
+
+// Bind filtros + limit/offset
 $types2 = $types . "ii";
 $params2 = $params;
 $params2[] = $por_pagina;
@@ -87,138 +81,166 @@ mysqli_stmt_bind_param($stmt, $types2, ...$params2);
 mysqli_stmt_execute($stmt);
 $r = mysqli_stmt_get_result($stmt);
 
-$fallback = esc(cover_fallback_svg_datauri());
+// ===== Paginação simples com data-page (pra JS interceptar) =====
+function montaPaginacao($p, $total_paginas) {
+  if ($total_paginas <= 1) return "";
 
-$rows_html = '';
+  $out = '<nav><ul class="pagination pagination-green mb-0">';
+
+  // anterior
+  $out .= '<li class="page-item '.($p <= 1 ? 'disabled' : '').'">';
+  $out .= '<a class="page-link" href="#" data-page="'.max(1, $p - 1).'">Anterior</a></li>';
+
+  // janela de páginas
+  $janela = 2;
+  $ini = max(1, $p - $janela);
+  $fim = min($total_paginas, $p + $janela);
+
+  for ($i = $ini; $i <= $fim; $i++) {
+    $out .= '<li class="page-item '.($i === $p ? 'active' : '').'">';
+    $out .= '<a class="page-link" href="#" data-page="'.$i.'">'.$i.'</a></li>';
+  }
+
+  // próxima
+  $out .= '<li class="page-item '.($p >= $total_paginas ? 'disabled' : '').'">';
+  $out .= '<a class="page-link" href="#" data-page="'.min($total_paginas, $p + 1).'">Próxima</a></li>';
+
+  $out .= '</ul></nav>';
+  return $out;
+}
+
+// ===== Render das linhas =====
+$rows_html = "";
+
 while ($l = mysqli_fetch_assoc($r)) {
   $id = (int)$l['id'];
 
-  $tituloRaw = (string)($l['titulo'] ?? 'Livro');
-  $titulo = esc($tituloRaw);
+  $titulo = (string)$l['titulo'];
+  $autor  = (string)($l['autor'] ?? '');
+  $ano    = $l['ano_publicacao'] ?? '';
 
-  $autor = esc($l['autor'] ?? '-');
+  $isbnRaw = (string)($l['ISBN'] ?? '');
+  $isbn = onlyDigits($isbnRaw);
 
-  $cdd = '-';
-  if (!empty($l['cdd_codigo']) || !empty($l['cdd_descricao'])) {
-    $cdd = esc(trim(($l['cdd_codigo'] ?? '') . ' - ' . ($l['cdd_descricao'] ?? '')));
+  // quantidades
+  $qtdTotal = (int)($l['qtd_total'] ?? 0);
+  $qtdDisp  = (int)($l['qtd_disp'] ?? 0);
+
+  $dispTxt  = "{$qtdDisp}/{$qtdTotal}";
+  $badge = ($qtdDisp > 0) ? "badge-soft-ok" : "badge-soft-no";
+
+  $disponivel = ((int)($l['disponivel'] ?? 1) === 1);
+
+  // categoria (por enquanto só mostra o valor cru; se quiser bonito, faz JOIN no CDD)
+  $cat = $l['categoria'];
+  $catTxt = ($cat && (int)$cat > 0) ? h($cat) : "-";
+
+  // ===== CAPA =====
+  // Prioridade:
+  // 1) capa_url do banco (manual/upload)
+  // 2) OpenLibrary
+  // 3) Google (fallback)
+  $capaUrl = trim((string)($l['capa_url'] ?? ''));
+
+  if ($capaUrl === "" && $isbn !== "") {
+    $capaUrl = "https://covers.openlibrary.org/b/isbn/{$isbn}-S.jpg?default=false";
   }
 
-  $ano = esc($l['ano_publicacao'] ?? '-');
+  $googleFallback = ($isbn !== "")
+    ? "https://books.google.com/books/content?vid=ISBN{$isbn}&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+    : "";
 
-  $isbn_digits = only_digits($l['ISBN'] ?? '');
-  $isbn_show = $isbn_digits !== '' ? esc($isbn_digits) : '-';
+  // Evita caso bizarro: isbn vazio + url de openlibrary
+  if ($isbn === "" && $capaUrl !== "" && function_exists("str_contains") && str_contains($capaUrl, "openlibrary.org")) {
+    $capaUrl = "";
+  }
 
-  $qtd_total = (int)($l['qtd_total'] ?? 1);
-  $abertos   = (int)($l['emprestimos_abertos'] ?? 0);
+  // HTML da imagem (onerror cai pro Google e depois placeholder)
+  if ($capaUrl !== "") {
+    $img = '<img class="cover-thumb" loading="lazy" alt="Capa" src="'.h($capaUrl).'"';
 
-  $qtd_disp_calc = $qtd_total - $abertos;
-  if ($qtd_disp_calc < 0) $qtd_disp_calc = 0;
+    if ($googleFallback !== "") {
+      // 1º erro: tenta Google
+      // 2º erro: vira placeholder
+      $img .= ' onerror="this.onerror=null;this.src=\''.h($googleFallback).'\';this.setAttribute(\'data-fallback\',\'1\');"';
+      $img .= ' onload="this.classList.add(\'cover-thumb\');"';
 
-  $badge = "<span class='badge-soft-ok'>{$qtd_disp_calc}/{$qtd_total}</span>";
-  if ($qtd_disp_calc <= 0) $badge = "<span class='badge-soft-no'>0/{$qtd_total}</span>";
+      // Se o Google também falhar, o CSS/JS pode substituir, mas aqui já dá um jeitinho:
+      $img .= ' data-gf="'.h($googleFallback).'"';
+    } else {
+      $img .= ' onerror="this.onerror=null;this.outerHTML=\'<div class=&quot;cover-placeholder&quot;>Sem capa</div>\';"';
+    }
 
-  $cover = cover_url_isbn_small($isbn_digits);
-  $coverEsc = esc($cover);
-
-  $coverHtml = "
-    <div style='width:38px;height:56px;border-radius:10px;border:1px solid #e7e1d6;background:#fbf8f2;overflow:hidden;display:flex;align-items:center;justify-content:center;'>
-      " . ($coverEsc !== ''
-        ? "<img src='{$coverEsc}' alt='Capa' style='width:100%;height:100%;object-fit:cover;'
-             onerror=\"this.onerror=null; this.src='{$fallback}';\">"
-        : "<img src='{$fallback}' alt='Sem capa' style='width:100%;height:100%;object-fit:cover;'>"
-      ) . "
-    </div>
-  ";
-
-  $desativado = ((int)($l['disponivel'] ?? 1) === 0);
-  $rowStyle = $desativado ? "style='opacity:.65;'" : "";
-
-  $acaoBtn = "";
-  if (!$desativado) {
-    $acaoBtn = "
-      <a class='icon-btn icon-btn--del'
-         href='#'
-         data-action='baixar'
-         data-id='{$id}'
-         data-titulo=\"" . esc($tituloRaw) . "\"
-         title='Baixar do acervo'>
-        <i class='bi bi-box-arrow-down'></i>
-      </a>
-    ";
+    $img .= '>';
   } else {
-    $acaoBtn = "
-      <a class='icon-btn icon-btn--edit'
-         href='#'
-         data-action='reativar'
-         data-id='{$id}'
-         data-titulo=\"" . esc($tituloRaw) . "\"
-         title='Reativar livro'>
-        <i class='bi bi-arrow-up-circle'></i>
-      </a>
-    ";
+    $img = '<div class="cover-placeholder">Sem capa</div>';
   }
 
-  $rows_html .= "
-    <tr {$rowStyle}>
-      <td>{$coverHtml}</td>
-      <td class='fw-semibold'>{$titulo}</td>
-      <td>{$autor}</td>
-      <td class='text-muted small'>{$cdd}</td>
-      <td>{$ano}</td>
-      <td class='text-muted small'>{$isbn_show}</td>
-      <td>{$badge}</td>
+  // ===== AÇÕES =====
+  $btnEditar = '
+    <a class="icon-btn icon-btn--edit" href="editar.php?id='.$id.'" title="Editar">
+      <i class="bi bi-pencil"></i>
+    </a>
+  ';
 
-      <td class='text-end'>
-        <a class='icon-btn icon-btn--edit' href='editar.php?id={$id}' title='Editar'>
-          <i class='bi bi-pencil'></i>
+  // Se tá ativo: "baixar". Se tá baixado: "reativar".
+  if ($disponivel) {
+    $btn2 = '
+      <a class="icon-btn icon-btn--del"
+        href="#"
+        data-action="baixar"
+        data-id="'.$id.'"
+        data-titulo="'.h($titulo).'"
+        title="Baixar do acervo">
+        <i class="bi bi-box-arrow-down"></i>
+      </a>
+    ';
+  } else {
+    $btn2 = '
+      <a class="icon-btn icon-btn--edit"
+        href="#"
+        data-action="reativar"
+        data-id="'.$id.'"
+        data-titulo="'.h($titulo).'"
+        title="Reativar">
+        <i class="bi bi-arrow-up-circle"></i>
+      </a>
+    ';
+  }
+
+  // ===== Linha da tabela =====
+  // IMPORTANTE: data-id no TR -> é isso que o modal de detalhes usa!
+  // Também deixei o título como <a> (só visual), mas quem manda é o click no <tr>.
+  $rows_html .= '
+    <tr data-id="'.$id.'" class="'.($disponivel ? '' : 'row-disabled').'">
+      <td>'.$img.'</td>
+
+      <td class="cell-wrap fw-semibold">
+        <a href="#" class="book-title-link" style="text-decoration:none;color:inherit;">
+          '.h($titulo).'
         </a>
-        {$acaoBtn}
       </td>
+
+      <td class="cell-wrap">'.h($autor).'</td>
+      <td class="cell-wrap">'.$catTxt.'</td>
+      <td>'.h($ano).'</td>
+      <td>'.h($isbnRaw).'</td>
+      <td><span class="'.$badge.'">'.h($dispTxt).'</span></td>
+      <td class="text-end">'.$btnEditar.$btn2.'</td>
     </tr>
-  ";
+  ';
 }
 
-// PAGINAÇÃO
-$pagination_html = '';
-if ($total_registros > 0) {
-  $inicio = max(1, $pagina - 2);
-  $fim = min($total_paginas, $pagina + 2);
-
-  $pagination_html .= "<nav><ul class='pagination justify-content-center mb-0'>";
-
-  $prevDisabled = ($pagina <= 1) ? "disabled" : "";
-  $prevPage = max(1, $pagina - 1);
-  $pagination_html .= "<li class='page-item {$prevDisabled}'>
-    <a class='page-link' href='#' data-page='{$prevPage}'>Anterior</a>
-  </li>";
-
-  if ($inicio > 1) {
-    $pagination_html .= "<li class='page-item'><a class='page-link' href='#' data-page='1'>1</a></li>";
-    if ($inicio > 2) $pagination_html .= "<li class='page-item disabled'><span class='page-link'>…</span></li>";
-  }
-
-  for ($i = $inicio; $i <= $fim; $i++) {
-    $active = ($i === $pagina) ? "active" : "";
-    $pagination_html .= "<li class='page-item {$active}'>
-      <a class='page-link' href='#' data-page='{$i}'>{$i}</a>
-    </li>";
-  }
-
-  if ($fim < $total_paginas) {
-    if ($fim < $total_paginas - 1) $pagination_html .= "<li class='page-item disabled'><span class='page-link'>…</span></li>";
-    $pagination_html .= "<li class='page-item'><a class='page-link' href='#' data-page='{$total_paginas}'>{$total_paginas}</a></li>";
-  }
-
-  $nextDisabled = ($pagina >= $total_paginas) ? "disabled" : "";
-  $nextPage = min($total_paginas, $pagina + 1);
-  $pagination_html .= "<li class='page-item {$nextDisabled}'>
-    <a class='page-link' href='#' data-page='{$nextPage}'>Próxima</a>
-  </li>";
-
-  $pagination_html .= "</ul></nav>";
+// Se não veio nada, retorna vazio bonitinho
+if (trim($rows_html) === "") {
+  $rows_html = '
+    <tr>
+      <td colspan="8" class="text-center text-muted py-4">Nenhum livro encontrado.</td>
+    </tr>
+  ';
 }
 
 echo json_encode([
   "rows_html" => $rows_html,
-  "pagination_html" => $pagination_html,
+  "pagination_html" => montaPaginacao($p, $total_paginas)
 ], JSON_UNESCAPED_UNICODE);

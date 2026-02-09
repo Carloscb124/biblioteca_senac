@@ -58,3 +58,11 @@ td.text-end{ white-space: nowrap; }
 .table.table-base tbody tr:hover td{
   background: #f6f0e6 !important;
 }
+
+.col-titulo {
+  max-width: 320px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; 
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
