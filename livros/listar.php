@@ -123,6 +123,51 @@ $q = trim($_GET['q'] ?? '');
   </div>
 </div>
 
+<!-- MODAL: DETALHES DO LIVRO -->
+<div class="modal fade" id="modalDetalhesLivro" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-journal-text me-2"></i>Detalhes do livro</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="d-flex gap-3 align-items-start">
+          <img id="detCapa" src="" alt="Capa"
+               style="width:110px;height:155px;object-fit:cover;border-radius:14px;border:1px solid rgba(0,0,0,.08);background:#efe9dd;display:none;"
+               onerror="this.style.display='none';" />
+
+          <div class="flex-grow-1">
+            <div class="fw-bold fs-4 mb-1" id="detTitulo">Livro</div>
+            <div class="text-muted mb-2" id="detAutor">Autor</div>
+
+            <div class="row g-2 small">
+              <div class="col-md-4"><span class="text-muted">Ano:</span> <span id="detAno">-</span></div>
+              <div class="col-md-8"><span class="text-muted">ISBN:</span> <span id="detIsbn">-</span></div>
+              <div class="col-md-4"><span class="text-muted">CDD:</span> <span id="detCdd">-</span></div>
+              <div class="col-md-8"><span class="text-muted">Disponíveis:</span> <span id="detDisp">-</span></div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="fw-semibold mb-1">Sinopse</div>
+        <div class="text-muted" id="detSinopse" style="white-space:pre-wrap;">Sem sinopse cadastrada.</div>
+      </div>
+
+      <div class="modal-footer">
+        <a href="#" class="btn btn-outline-secondary" id="detBtnEditar">
+          <i class="bi bi-pencil me-1"></i>Editar
+        </a>
+        <button type="button" class="btn btn-brand" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <style>
   /* Quebra de linha pra títulos/autores enormes não estourarem a tabela */
   .cell-wrap{
@@ -248,6 +293,88 @@ $q = trim($_GET['q'] ?? '');
     btnConfirmarReativar.href = `reativar.php?id=${encodeURIComponent(id)}`;
     modal.show();
   });
+
+    // ===== MODAL DETALHES (clicar no livro) =====
+  const modalDetEl = document.getElementById("modalDetalhesLivro");
+
+  const detCapa = document.getElementById("detCapa");
+  const detTitulo = document.getElementById("detTitulo");
+  const detAutor = document.getElementById("detAutor");
+  const detAno = document.getElementById("detAno");
+  const detIsbn = document.getElementById("detIsbn");
+  const detCdd = document.getElementById("detCdd");
+  const detDisp = document.getElementById("detDisp");
+  const detSinopse = document.getElementById("detSinopse");
+  const detBtnEditar = document.getElementById("detBtnEditar");
+
+  function getModalInstance(modalEl) {
+    if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
+    return bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  }
+
+  // Clique na linha do livro abre detalhes
+  tbody.addEventListener("click", async (e) => {
+
+    // Se clicou em botões de ação, deixa seu código atual cuidar
+    if (e.target.closest("[data-action='baixar']") || e.target.closest("[data-action='reativar']")) return;
+    if (e.target.closest("a.icon-btn")) return; // editar/ícones
+
+    const tr = e.target.closest("tr.book-row");
+    if (!tr) return;
+
+    const id = tr.getAttribute("data-book-id");
+    if (!id) return;
+
+    const modal = getModalInstance(modalDetEl);
+    if (!modal) return;
+
+    // Mostra loading simples
+    detTitulo.textContent = "Carregando...";
+    detAutor.textContent = "";
+    detAno.textContent = "-";
+    detIsbn.textContent = "-";
+    detCdd.textContent = "-";
+    detDisp.textContent = "-";
+    detSinopse.textContent = "Carregando sinopse...";
+    detCapa.style.display = "none";
+    detCapa.src = "";
+    detBtnEditar.href = `editar.php?id=${encodeURIComponent(id)}`;
+
+    modal.show();
+
+    try {
+      const resp = await fetch(`detalhes_livro.php?id=${encodeURIComponent(id)}`, {
+        headers: { "X-Requested-With": "fetch" }
+      });
+      const data = await resp.json();
+
+      if (!data || !data.ok) {
+        detTitulo.textContent = "Erro";
+        detSinopse.textContent = "Não foi possível carregar os detalhes.";
+        return;
+      }
+
+      const b = data.book;
+
+      detTitulo.textContent = b.titulo || "Sem título";
+      detAutor.textContent = b.autor || "Autor não informado";
+      detAno.textContent = b.ano_publicacao || "-";
+      detIsbn.textContent = b.isbn || "-";
+      detCdd.textContent = b.categoria || "-";
+      detDisp.textContent = `${b.qtd_disp}/${b.qtd_total}` + (b.disponivel ? "" : " (baixado)");
+      detSinopse.textContent = (b.sinopse && b.sinopse.trim()) ? b.sinopse : "Sem sinopse cadastrada.";
+
+      if (b.capa_url) {
+        detCapa.src = b.capa_url;
+        detCapa.style.display = "block";
+      }
+
+    } catch (err) {
+      detTitulo.textContent = "Erro";
+      detSinopse.textContent = "Falha ao buscar detalhes. Tente novamente.";
+    }
+  });
+
 </script>
 
 <?php include("../includes/footer.php"); ?>

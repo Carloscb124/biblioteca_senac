@@ -18,6 +18,7 @@ include("../includes/header.php");
       Envia:
       - titulo, autor, ano_publicacao, ISBN, qtd_total
       - categoria (id do CDD)
+      - sinopse
       - capa_url (string) -> pode vir da API, de URL manual ou de upload local
       - capa_arquivo (upload) -> salvamos no servidor e colocamos o caminho em capa_url
     -->
@@ -58,7 +59,7 @@ include("../includes/header.php");
               style="width:64px;height:96px;object-fit:cover;border-radius:10px;display:none;border:1px solid #e7e1d6;"
               onerror="this.style.display='none';">
 
-            <div class="text-muted small" id="coverHint">Digite um ISBN para buscar a capa.</div>
+            <div class="text-muted small" id="coverHint">Digite um ISBN para buscar os dados e a capa.</div>
           </div>
 
           <!-- Guarda a capa que será salva (url final) -->
@@ -85,6 +86,12 @@ include("../includes/header.php");
           <div class="form-text">Clique numa sugestão para preencher a categoria.</div>
         </div>
 
+        <!-- SINOPSE -->
+        <div class="col-12">
+          <label class="form-label">Sinopse</label>
+          <textarea class="form-control" name="sinopse" id="sinopse" rows="4" placeholder="Vai preencher automático pelo ISBN (quando disponível)"></textarea>
+        </div>
+
         <!-- Plano B: se API não achar capa -->
         <div class="col-12">
           <div class="row g-2">
@@ -103,7 +110,6 @@ include("../includes/header.php");
 
           </div>
         </div>
-
       </div>
 
       <div class="form-actions mt-3">
@@ -120,7 +126,9 @@ include("../includes/header.php");
 
 <script>
   // ============ Helpers ============
-  function onlyDigits(s){ return (s || '').replace(/\D/g, ''); }
+  function onlyDigits(s) {
+    return (s || '').replace(/\D/g, '');
+  }
 
   // ============ CDD autocomplete ============
   const inputCDD = document.getElementById("cdd");
@@ -129,7 +137,10 @@ include("../includes/header.php");
 
   inputCDD.addEventListener("keyup", () => {
     const q = inputCDD.value.trim();
-    if (q.length < 2) { resultadoCDD.innerHTML = ""; return; }
+    if (q.length < 2) {
+      resultadoCDD.innerHTML = "";
+      return;
+    }
 
     fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
       .then(res => res.text())
@@ -145,15 +156,22 @@ include("../includes/header.php");
     resultadoCDD.innerHTML = "";
   });
 
-  // ============ Capa por ISBN (OpenLibrary -> Google Books) ============
-  const isbnInput   = document.getElementById("isbn");
-  const imgPrev     = document.getElementById("coverPreview");
-  const hint        = document.getElementById("coverHint");
-  const capaHidden  = document.getElementById("capa_url");
+  // ============ Inputs do formulário ============
+  const isbnInput = document.getElementById("isbn");
+
+  const tituloInput = document.querySelector('input[name="titulo"]');
+  const autorInput = document.querySelector('input[name="autor"]');
+  const anoInput = document.querySelector('input[name="ano_publicacao"]');
+  const sinopseInput = document.getElementById("sinopse");
+
+  // Preview de capa
+  const imgPrev = document.getElementById("coverPreview");
+  const hint = document.getElementById("coverHint");
+  const capaHidden = document.getElementById("capa_url");
 
   // inputs de override
   const capaManual = document.getElementById("capa_url_manual");
-  const capaFile   = document.getElementById("capa_arquivo");
+  const capaFile = document.getElementById("capa_arquivo");
 
   // Quando o usuário coloca URL manual, a gente usa ela como capa
   capaManual.addEventListener("input", () => {
@@ -176,58 +194,111 @@ include("../includes/header.php");
     imgPrev.style.display = "block";
     hint.textContent = "Capa definida por upload (vai salvar no servidor).";
 
-    // Importante: o caminho real vai ser definido no salvar.php,
-    // então a gente só limpa o hidden pra não brigar com URL antiga.
+    // O caminho real vai ser definido no salvar.php
     capaHidden.value = "";
   });
 
+  // ============ Busca automática por ISBN (dados + capa) ============
   let t = null;
   isbnInput.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(buscarCapaPorIsbn, 300);
+    t = setTimeout(buscarDadosPorIsbn, 350);
   });
 
-  async function buscarCapaPorIsbn(){
-    // Se o usuário já colocou URL manual ou upload, a gente não atrapalha
-    if (capaManual.value.trim()) return;
-    if (capaFile.files && capaFile.files.length) return;
+  async function buscarDadosPorIsbn() {
+    // Se o usuário já colocou URL manual ou upload, a gente não atrapalha a capa
+    const hasOverrideCover =
+      (capaManual.value.trim() !== "") ||
+      (capaFile.files && capaFile.files.length);
 
     const d = onlyDigits(isbnInput.value);
+
     if (!d || (d.length !== 10 && d.length !== 13)) {
-      imgPrev.style.display = "none";
-      imgPrev.src = "";
-      capaHidden.value = "";
-      hint.textContent = "Digite um ISBN válido (10 ou 13 dígitos) para buscar a capa.";
+      hint.textContent = "Digite um ISBN válido (10 ou 13 dígitos).";
       return;
     }
 
+    hint.textContent = "Buscando dados do livro...";
+    try {
+      const resp = await fetch(`buscar_isbn.php?isbn=${encodeURIComponent(d)}`, {
+        headers: {
+          "X-Requested-With": "fetch"
+        }
+      });
+
+      const data = await resp.json();
+      if (!data || !data.ok) {
+        hint.textContent = "Não achei dados desse ISBN. Você pode preencher manual.";
+        return;
+      }
+
+      // Preenche somente se estiver vazio (pra não brigar com você)
+      if (data.titulo && !tituloInput.value.trim()) tituloInput.value = data.titulo;
+      if (data.autor && !autorInput.value.trim() && data.autor.toLowerCase() !== "author not identified") {
+        autorInput.value = data.autor;
+      }
+
+      if (data.ano_publicacao && !anoInput.value.trim()) anoInput.value = data.ano_publicacao;
+
+      if (data.sinopse && !sinopseInput.value.trim()) {
+        sinopseInput.value = data.sinopse;
+      } else if (!sinopseInput.value.trim()) {
+        // só mensagem, não preenche texto fake
+        // deixa o campo vazio mesmo
+      }
+
+
+      // Capa vinda do buscar_isbn (só se não tiver override)
+      if (!hasOverrideCover && data.capa_url) {
+        capaHidden.value = data.capa_url;
+        imgPrev.src = data.capa_url;
+        imgPrev.style.display = "block";
+        const src = data.source ? data.source : "api";
+        hint.textContent = `Dados carregados (${src}).`;
+
+        return;
+      }
+
+      // Se não veio capa no buscar_isbn, tenta teu buscar_capa.php (fallback do teu sistema)
+      if (!hasOverrideCover) {
+        await buscarCapaPorIsbnFallback(d);
+      } else {
+        hint.textContent = `Dados carregados (${data.source}).`;
+      }
+
+    } catch (e) {
+      hint.textContent = "Erro ao buscar dados. Preencha manual ou tente de novo.";
+    }
+  }
+
+  // ============ Fallback: usa teu buscar_capa.php ============
+  async function buscarCapaPorIsbnFallback(isbn) {
     hint.textContent = "Buscando capa...";
     imgPrev.style.display = "none";
     imgPrev.src = "";
 
-    try{
-      // Chama nosso backend (sem CORS e com fallback correto)
-      const resp = await fetch(`buscar_capa.php?isbn=${encodeURIComponent(d)}`, {
-        headers: { "X-Requested-With": "fetch" }
+    try {
+      const resp = await fetch(`buscar_capa.php?isbn=${encodeURIComponent(isbn)}`, {
+        headers: {
+          "X-Requested-With": "fetch"
+        }
       });
       const data = await resp.json();
 
       if (data && data.ok && data.url) {
-        capaHidden.value = data.url;             // salva só a URL/caminho
+        capaHidden.value = data.url;
         imgPrev.src = data.url;
         imgPrev.style.display = "block";
         hint.textContent = `Capa encontrada (${data.source}).`;
       } else {
         capaHidden.value = "";
-        hint.textContent = "Sem capa encontrada nas APIs. Você pode colar uma URL ou enviar uma imagem.";
+        hint.textContent = "Sem capa encontrada. Você pode colar uma URL ou enviar uma imagem.";
       }
-    }catch(e){
+    } catch (e) {
       capaHidden.value = "";
       hint.textContent = "Erro ao buscar capa. Use URL manual ou upload.";
     }
   }
 </script>
-
-
 
 <?php include("../includes/footer.php"); ?>
