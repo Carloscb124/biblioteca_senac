@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 06/02/2026 às 12:08
+-- Tempo de geração: 11/02/2026 às 15:54
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -4270,6 +4270,100 @@ INSERT INTO `cdd` (`id`, `codigo`, `descricao`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `cdd_keywords`
+--
+
+CREATE TABLE `cdd_keywords` (
+  `id` int(11) NOT NULL,
+  `keyword` varchar(120) NOT NULL,
+  `cdd_id` int(11) NOT NULL,
+  `peso` int(11) DEFAULT 10
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Despejando dados para a tabela `cdd_keywords`
+--
+
+INSERT INTO `cdd_keywords` (`id`, `keyword`, `cdd_id`, `peso`) VALUES
+(1, 'programação', 15, 40),
+(2, 'algoritmo', 15, 30),
+(3, 'javascript', 15, 40),
+(4, 'php', 15, 40),
+(5, 'banco de dados', 11, 35),
+(6, 'computação', 11, 30),
+(7, 'redes', 11, 30),
+(8, 'internet', 14, 30),
+(9, 'romance', 813, 20),
+(10, 'ficção', 813, 20),
+(11, 'distopia', 813, 25),
+(12, 'fantasia', 813, 20),
+(13, 'história', 900, 20),
+(14, 'biografia', 920, 25),
+(15, 'administração', 658, 25),
+(16, 'empreendedorismo', 658, 30),
+(17, 'programação', 15, 50),
+(18, 'algoritmo', 15, 40),
+(19, 'estrutura de dados', 15, 40),
+(20, 'javascript', 15, 55),
+(21, 'php', 15, 55),
+(22, 'python', 15, 55),
+(23, 'java', 15, 45),
+(24, 'c#', 15, 45),
+(25, 'sql', 15, 40),
+(26, 'desenvolvimento web', 15, 40),
+(27, 'frontend', 15, 35),
+(28, 'backend', 15, 35),
+(29, 'engenharia de software', 15, 35),
+(30, 'computação', 11, 35),
+(31, 'ciência da computação', 11, 35),
+(32, 'informática', 11, 35),
+(33, 'redes', 11, 45),
+(34, 'rede de computadores', 11, 45),
+(35, 'tcp', 11, 25),
+(36, 'ip', 11, 25),
+(37, 'roteamento', 11, 35),
+(38, 'switch', 11, 35),
+(39, 'router', 11, 35),
+(40, 'wi-fi', 11, 30),
+(41, 'wifi', 11, 30),
+(42, 'segurança da informação', 11, 40),
+(43, 'cibersegurança', 11, 40),
+(44, 'firewall', 11, 35),
+(45, 'cabeamento', 11, 35),
+(46, 'biblioteca', 32, 45),
+(47, 'biblioteconomia', 32, 55),
+(48, 'catalogação', 32, 55),
+(49, 'classificação', 32, 35),
+(50, 'cdd', 32, 35),
+(51, 'acervo', 32, 40),
+(52, 'marc', 32, 35),
+(53, 'rda', 32, 35),
+(54, 'administração', 2738, 45),
+(55, 'gestão', 2738, 45),
+(56, 'empreendedorismo', 2738, 55),
+(57, 'marketing', 2738, 45),
+(58, 'negócios', 2738, 40),
+(59, 'finanças', 2738, 35),
+(60, 'contabilidade', 2738, 35),
+(61, 'recursos humanos', 2738, 35),
+(62, 'romance', 3387, 35),
+(63, 'ficção', 3387, 30),
+(64, 'ficção científica', 3387, 45),
+(65, 'distopia', 3387, 45),
+(66, 'fantasia', 3387, 40),
+(67, 'literatura', 3387, 25),
+(68, 'novela', 3387, 25),
+(69, 'história', 3533, 35),
+(70, 'história do brasil', 3533, 55),
+(71, 'história mundial', 3533, 45),
+(72, 'historiografia', 3533, 35),
+(73, 'biografia', 3937, 55),
+(74, 'autobiografia', 3937, 55),
+(75, 'memórias', 3937, 40);
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `emprestimos`
 --
 
@@ -4288,9 +4382,8 @@ CREATE TABLE `emprestimos` (
 --
 
 INSERT INTO `emprestimos` (`id`, `id_usuario`, `id_livro`, `data_emprestimo`, `data_prevista`, `data_devolucao`, `devolvido`) VALUES
-(6, 5, 7, '2026-01-01', '2026-01-13', '2026-02-06', 1),
-(7, 5, 1, '2026-01-28', '2026-01-29', '2026-01-30', 1),
-(9, 1, 13, '2026-01-30', '2026-02-04', NULL, 0);
+(1, 1, 125, '2026-02-06', '2026-02-13', NULL, 0),
+(2, 1, 127, '2026-01-30', '2026-02-04', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -4313,7 +4406,9 @@ CREATE TABLE `funcionarios` (
 --
 
 INSERT INTO `funcionarios` (`id`, `nome`, `email`, `senha`, `cargo`, `ativo`, `criado_em`) VALUES
-(1, 'Carlos', 'cb473355@gmail.com', '$2y$10$ULFCkjO4Zb2JAabs2iTJ7ONMVuZa2e2uMPkh39OEsaNfEjA9X49/m', 'funcionario', 1, '2026-02-02 14:33:33');
+(1, 'Carlos', 'cb473355@gmail.com', '$2y$10$ULFCkjO4Zb2JAabs2iTJ7ONMVuZa2e2uMPkh39OEsaNfEjA9X49/m', 'funcionario', 1, '2026-02-02 14:33:33'),
+(2, 'Gustavo Teste', 'gustavoteste@gmail.com', '$2y$10$zkvzUu6It0MKbFv8uaDIoull9sHzB5MkJW6m0uZJcoLRQ1g6zCnnW', 'funcionario', 1, '2026-02-06 11:19:59'),
+(3, 'carlossss', 'teste23@gmail.com', '$2y$10$mQILg6inEU5nG0.mWvdWaeroNX2M/RXld8fGNobveyJiFYMSQGGQW', 'funcionario', 1, '2026-02-06 14:13:13');
 
 -- --------------------------------------------------------
 
@@ -4329,35 +4424,47 @@ CREATE TABLE `livros` (
   `disponivel` tinyint(1) DEFAULT 1,
   `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
   `ISBN` varchar(20) DEFAULT NULL,
+  `capa_url` varchar(255) DEFAULT NULL,
   `qtd_total` int(11) NOT NULL DEFAULT 1,
   `qtd_disp` int(11) NOT NULL DEFAULT 1,
-  `categoria` int(11) DEFAULT NULL
+  `categoria` int(11) DEFAULT NULL,
+  `sinopse` text DEFAULT NULL,
+  `assuntos` text DEFAULT NULL,
+  `editora` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Despejando dados para a tabela `livros`
 --
 
-INSERT INTO `livros` (`id`, `titulo`, `autor`, `ano_publicacao`, `disponivel`, `criado_em`, `ISBN`, `qtd_total`, `qtd_disp`, `categoria`) VALUES
-(1, 'A invenção de Hugo Cabret', 'Brian Selznick', 2007, 1, '2026-01-28 11:39:27', '978-85-7675-203-5', 1, 1, NULL),
-(2, 'Origem', 'Dan Brown', 2017, 1, '2026-01-28 11:39:27', '978-85-8041-766-1', 1, 1, NULL),
-(3, 'O magico de Oz', 'L. Frank Baum', 2013, 1, '2026-01-28 11:39:27', '978-85-378-0966-2', 1, 1, NULL),
-(4, 'O lado bom da vida', 'Matthew Quick', 2012, 1, '2026-01-28 11:39:27', '978-85-8057-277-3', 1, 1, NULL),
-(5, 'Principios de Administração Financeira', 'Lawrence J. Gitman', 2010, 1, '2026-01-28 11:39:27', '978-85-7605-332-3', 1, 1, NULL),
-(6, 'Os Últimos dias de Krypton', 'Kevin J. Anderson', 2012, 1, '2026-01-28 11:39:27', '978-85-441-0334-0', 1, 1, NULL),
-(7, 'Cadê você, Bernadete?', 'Maria Semple', 2012, 1, '2026-01-28 11:39:27', '978-85-359-2293-6', 1, 1, NULL),
-(8, 'Hardware 2, o guia definivito', 'Carlos Eduardo Morimoto', 2010, 1, '2026-01-28 11:39:27', '978-85-99593-16-5', 1, 1, NULL),
-(9, 'HTML e CSS', 'Paulo Henrique Santo Pedro', 2024, 1, '2026-01-28 11:39:27', '978-85-396-4854-2', 1, 1, NULL),
-(10, 'O andar do bêbado', 'Leonard Mlodinow', 2008, 1, '2026-01-28 11:39:27', '978-85-378-0155-0', 1, 1, NULL),
-(11, 'Empreendedorismo: Uma visão do processo', 'Robert A. Baron', 2015, 1, '2026-01-28 11:39:27', '978-85-221-0533-5', 1, 1, NULL),
-(12, 'Planejamento Estratégico: Conceitos, metodologia e práticas', 'Djalma de Pinho Rebouças de Oliveira', 2015, 1, '2026-01-28 11:39:27', '978-85-97-00069-6', 1, 1, NULL),
-(13, 'Empreendedorismo: Dando asas ao espirito empreendedor', 'Editora Manole', 2012, 1, '2026-01-28 11:39:27', '978-85-204-3829-9', 1, 1, NULL),
-(14, 'Diario de um banana: Bons tempos', 'Jeff Kinney', 2015, 1, '2026-01-28 11:39:27', '978-85-7683-942-2', 1, 1, NULL),
-(15, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-01-28 11:39:27', '978-85-02-06435-5', 1, 1, NULL),
-(16, 'O grande golias', 'Golias', 1547, 1, '2026-01-29 12:26:15', '156-54-8987-896-4', 1, 1, NULL),
-(17, 'O pequeno', 'davi', 1548, 1, '2026-01-29 12:27:26', '156-54-89-87896-5', 1, 1, NULL),
-(18, 'O medio', 'Rei Saul', 1546, 0, '2026-01-29 12:36:28', '145-456-589-456-4', 1, 1, NULL),
-(69, 'a', 'aa', 1000, 1, '2026-02-06 10:51:48', '111-11-1111-111-1', 2, 2, 3);
+INSERT INTO `livros` (`id`, `titulo`, `autor`, `ano_publicacao`, `disponivel`, `criado_em`, `ISBN`, `capa_url`, `qtd_total`, `qtd_disp`, `categoria`, `sinopse`, `assuntos`, `editora`) VALUES
+(113, 'Harry Potter e as Reliquias da Morte - Edicao Comemorativa dos 20 anos da Colecao Harry Potter', 'J. K. Rowling', 2019, 1, '2026-02-11 14:24:43', '9788532531827', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(114, '1984', 'George Orwell', 2020, 1, '2026-02-11 14:24:43', '9786587034201', 'https://covers.openlibrary.org/b/id/9267242-L.jpg', 11, 11, 3345, 'Nesta obra magistral, acompanhamos o drama de Winston Smith, um funcionário do Ministério da Verdade, parte do governo do superestado da Oceania ― que inclui as Américas, a Austrália, a Inglaterra e o sul da África.\r\n\r\nO estado totalitário comandado pela figura mítica do Grande Irmão controla todos os aspectos da vida de seus cidadãos. No entanto, Smith odeia secretamente o Partido e deseja se rebelar contra o sistema.\r\n\r\n1984 foi escolhido pela revista Time como um dos cem melhores romances de língua inglesa e garantiu seu lugar como um clássico da literatura moderna.\r\n\r\nA obra se afirma como uma valiosa reflexão sobre os malefícios do totalitarismo.', NULL, 'Via Leitura'),
+(115, 'aaaaa', 'aaaa', 1500, 1, '2026-02-11 14:24:43', '7899987885859', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(116, 'Empreendedorismo: Dando asas ao espirito empreendedor', 'Editora Manole', 2012, 1, '2026-02-11 14:24:43', '978-85-204-3829-9', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(117, 'Diario de um banana: Bons tempos', 'Jeff Kinney', 2015, 1, '2026-02-11 14:24:43', '978-85-7683-942-2', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(118, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-02-11 14:24:43', '978-85-02-06435-5', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(119, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'aaaaaaaaaaaaaaaaaaaaaaaaa', 1501, 1, '2026-02-11 14:24:43', '98754516578', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(120, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaa', 1500, 1, '2026-02-11 14:24:43', '15656544557', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(121, 'O idiota', 'Dostoievski', 1889, 1, '2026-02-11 14:24:43', '9788544001882', NULL, 2, 2, NULL, NULL, NULL, NULL),
+(122, 'O medio', 'Rei Saul', 1546, 1, '2026-02-11 14:24:43', '145-456-589-456-4', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(123, 'O pequeno', 'davi', 1548, 1, '2026-02-11 14:24:43', '156-54-89-87896-5', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(124, 'O grande golias', 'Golias', 1547, 1, '2026-02-11 14:24:43', '156-54-8987-896-4', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(125, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-02-11 14:24:43', '9788502064355', NULL, 1, 0, NULL, NULL, NULL, NULL),
+(126, 'Diario de um banana: Bons tempos', 'Jeff Kinney', 2015, 1, '2026-02-11 14:24:43', '9788576839422', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(127, 'Empreendedorismo: Dando asas ao espirito empreendedor', 'Editora Manole', 2012, 1, '2026-02-11 14:24:43', '9788597026801', NULL, 1, 0, NULL, NULL, NULL, NULL),
+(128, 'Planejamento Estratégico: Conceitos, metodologia e práticas', 'Djalma de Pinho Rebouças de Oliveira', 2015, 1, '2026-02-11 14:24:43', '978-85-97-00069-6', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(129, 'Empreendedorismo: Uma visão do processo', 'Robert A. Baron', 2015, 1, '2026-02-11 14:24:43', '978-85-221-0533-5', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(130, 'O Andar do Bêbado', 'Leonard Mlodinow', 2018, 1, '2026-02-11 14:24:43', '9788537818107', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(131, 'HTML e CSS', 'Paulo Henrique Santo Pedro', 2024, 1, '2026-02-11 14:24:43', '978-85-396-4854-2', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(132, 'Hardware 2, o guia definivito', 'Carlos Eduardo Morimoto', 2010, 1, '2026-02-11 14:24:43', '978-85-99593-16-5', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(133, 'Cadê você, Bernadete?', 'Maria Semple', 2012, 1, '2026-02-11 14:24:43', '978-85-359-2293-6', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(134, 'Os Últimos dias de Krypton', 'Kevin J. Anderson', 2012, 1, '2026-02-11 14:24:43', '978-85-441-0334-0', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(135, 'Principios de Administração Financeira', 'Lawrence J. Gitman', 2010, 1, '2026-02-11 14:24:43', '978-85-7605-332-3', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(136, 'O lado bom da vida', 'Matthew Quick', 2012, 1, '2026-02-11 14:24:43', '978-85-8057-277-3', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(137, 'O magico de Oz', 'L. Frank Baum', 2013, 1, '2026-02-11 14:24:43', '978-85-378-0966-2', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(138, 'Origem', 'Dan Brown (Teacher)', 2017, 1, '2026-02-11 14:24:43', '9788580417661', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(139, 'A invenção de Hugo Cabret', 'Brian Selznick', 2007, 1, '2026-02-11 14:24:43', '978-85-7675-203-5', NULL, 1, 1, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -4381,11 +4488,14 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nome`, `email`, `telefone`, `criado_em`, `perfil`, `cpf`, `ativo`) VALUES
-(1, 'Carlos Eduardo', 'teste@gmail.com', NULL, '2026-01-29 13:38:22', 'admin', '', 1),
-(5, 'Carlos', NULL, NULL, '2026-01-29 13:43:45', 'leitor', '48949849864', 1),
-(15, 'jaiminho', NULL, NULL, '2026-02-04 14:14:56', 'leitor', '56498798468', 1),
-(16, 'marquinhos', NULL, NULL, '2026-02-04 14:24:36', 'leitor', '154.894.968-49', 1),
-(17, 'aaaaa', 'teste33@gmail.com', '15998533336', '2026-02-04 14:25:13', 'leitor', '15486874968', 0);
+(1, 'Carlos Eduardo', 'teste@gmail.com', '', '2026-01-29 13:38:22', 'admin', '', 1),
+(5, 'Carlos', NULL, '', '2026-01-29 13:43:45', 'leitor', '48949849864', 1),
+(15, 'jaiminho', NULL, '', '2026-02-04 14:14:56', 'leitor', '56498798468', 1),
+(16, 'marquinhosaa', NULL, '', '2026-02-04 14:24:36', 'leitor', '15489496849', 1),
+(17, 'aaaaa', 'teste33@gmail.com', '15998533336', '2026-02-04 14:25:13', 'leitor', '15486874968', 0),
+(18, 'Joao Do Grau', NULL, '', '2026-02-06 11:30:16', 'leitor', '031.032.131-31', 1),
+(19, 'aaaaaaaaaaaaaaaaa', NULL, '', '2026-02-09 11:35:01', 'leitor', '156.565.456-55', 0),
+(20, 'Marcos', 'marcosteste@gmail.com', '', '2026-02-11 14:45:23', 'leitor', '51623580805', 1);
 
 --
 -- Índices para tabelas despejadas
@@ -4396,6 +4506,14 @@ INSERT INTO `usuarios` (`id`, `nome`, `email`, `telefone`, `criado_em`, `perfil`
 --
 ALTER TABLE `cdd`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Índices de tabela `cdd_keywords`
+--
+ALTER TABLE `cdd_keywords`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `keyword` (`keyword`),
+  ADD KEY `cdd_id` (`cdd_id`);
 
 --
 -- Índices de tabela `emprestimos`
@@ -4437,28 +4555,34 @@ ALTER TABLE `cdd`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4225;
 
 --
+-- AUTO_INCREMENT de tabela `cdd_keywords`
+--
+ALTER TABLE `cdd_keywords`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
+
+--
 -- AUTO_INCREMENT de tabela `emprestimos`
 --
 ALTER TABLE `emprestimos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `funcionarios`
 --
 ALTER TABLE `funcionarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de tabela `livros`
 --
 ALTER TABLE `livros`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- Restrições para tabelas despejadas
