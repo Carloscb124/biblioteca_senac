@@ -2,54 +2,50 @@
 include("../conexao.php");
 include("../includes/flash.php");
 
-// =======================
-// 1) Lê inputs
-// =======================
-$titulo    = trim($_POST['titulo'] ?? '');
-$autor     = trim($_POST['autor'] ?? '');
-$anoRaw    = $_POST['ano_publicacao'] ?? '';
-$isbnRaw   = trim($_POST['ISBN'] ?? '');
-$qtd_add   = (int)($_POST['qtd_total'] ?? 1);
+/*
+  salvar.php
+  - Cria livro novo
+  - Se ISBN já existir (UNIQUE): soma exemplares em qtd_total e qtd_disp
+  - Salva: titulo, autor, editora, ano_publicacao, ISBN, capa_url, categoria, sinopse, assuntos
+*/
+
+$titulo   = trim($_POST['titulo'] ?? '');
+$autor    = trim($_POST['autor'] ?? '');
+$editora  = trim($_POST['editora'] ?? '');
+$sinopse  = trim($_POST['sinopse'] ?? '');
+$assuntos = trim($_POST['assuntos'] ?? '');
+
+$anoRaw   = $_POST['ano_publicacao'] ?? '';
+$isbnRaw  = trim($_POST['ISBN'] ?? '');
+
+$qtd_add  = (int)($_POST['qtd_total'] ?? 1);
 $categoria = (int)($_POST['categoria'] ?? 0);
 
-// NOVO: sinopse
-$sinopse = trim($_POST['sinopse'] ?? '');
-
-// capa_url pode vir da API (hidden) ou URL manual
 $capa_url = trim($_POST['capa_url'] ?? '');
 
-// =======================
-// 2) Normalizações
-// =======================
+// Normalizações
 $ano = null;
 if ($anoRaw !== '' && is_numeric($anoRaw)) $ano = (int)$anoRaw;
 
-// ISBN salva só dígitos
 $isbn = preg_replace('/\D+/', '', $isbnRaw);
 
-// =======================
-// 3) Validações básicas
-// =======================
+if ($qtd_add < 1) $qtd_add = 1;
+
+// Validações
 if ($titulo === '') {
-  flash_set('danger', 'O título é obrigatório.');
+  flash_set("danger", "O título é obrigatório.");
   header("Location: cadastrar.php"); exit;
 }
 if ($isbn === '' || (strlen($isbn) !== 10 && strlen($isbn) !== 13)) {
-  flash_set('danger', 'ISBN inválido. Use 10 ou 13 dígitos.');
-  header("Location: cadastrar.php"); exit;
-}
-if ($qtd_add < 1) {
-  flash_set('danger', 'A quantidade de exemplares deve ser no mínimo 1.');
+  flash_set("danger", "ISBN inválido. Use 10 ou 13 dígitos.");
   header("Location: cadastrar.php"); exit;
 }
 if ($categoria < 1) {
-  flash_set('danger', 'Selecione uma categoria (CDD).');
+  flash_set("danger", "Selecione uma categoria (CDD).");
   header("Location: cadastrar.php"); exit;
 }
 
-// =======================
-// 4) Upload de capa (se tiver)
-// =======================
+// Upload de capa (opcional)
 if (isset($_FILES["capa_arquivo"]) && $_FILES["capa_arquivo"]["error"] === UPLOAD_ERR_OK) {
   $tmp  = $_FILES["capa_arquivo"]["tmp_name"];
   $name = $_FILES["capa_arquivo"]["name"] ?? "capa";
@@ -76,23 +72,51 @@ mysqli_begin_transaction($conn);
 
 try {
 
-  // =======================
-  // 5) Insert + se ISBN já existe, soma quantidade
-  // =======================
+  /*
+    IMPORTANTE:
+    - Esse INSERT pressupõe que ISBN é UNIQUE na tabela livros.
+    - disponivel fica sempre 1 no cadastro.
+    - qtd_total e qtd_disp sobem junto quando é livro novo ou quando soma exemplares.
+
+    Placeholders (?) no VALUES:
+      1 titulo
+      2 autor
+      3 editora
+      4 ano_publicacao
+      5 ISBN
+      6 capa_url
+      7 categoria
+      8 sinopse
+      9 assuntos
+      10 qtd_total
+      11 qtd_disp
+  */
+
   $stmt = mysqli_prepare($conn, "
     INSERT INTO livros
-      (titulo, autor, ano_publicacao, ISBN, capa_url, categoria, sinopse, qtd_total, qtd_disp, disponivel)
+      (titulo, autor, editora, ano_publicacao, ISBN, capa_url, categoria, sinopse, assuntos, qtd_total, qtd_disp, disponivel)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     ON DUPLICATE KEY UPDATE
       titulo = VALUES(titulo),
       autor  = VALUES(autor),
+
+      editora = CASE
+        WHEN VALUES(editora) IS NULL OR VALUES(editora) = '' THEN editora
+        ELSE VALUES(editora)
+      END,
+
       ano_publicacao = VALUES(ano_publicacao),
       categoria = VALUES(categoria),
 
       sinopse = CASE
         WHEN VALUES(sinopse) IS NULL OR VALUES(sinopse) = '' THEN sinopse
         ELSE VALUES(sinopse)
+      END,
+
+      assuntos = CASE
+        WHEN VALUES(assuntos) IS NULL OR VALUES(assuntos) = '' THEN assuntos
+        ELSE VALUES(assuntos)
       END,
 
       capa_url = CASE
@@ -105,30 +129,41 @@ try {
       disponivel = 1
   ");
 
-  // ✅ ATENÇÃO AQUI: 9 placeholders => 9 tipos => 9 variáveis
-  // titulo(s), autor(s), ano(i), isbn(s), capa(s), categoria(i), sinopse(s), qtd_total(i), qtd_disp(i)
+  /*
+    Tipos (11):
+      titulo(s), autor(s), editora(s), ano(i),
+      isbn(s), capa_url(s), categoria(i),
+      sinopse(s), assuntos(s),
+      qtd_total(i), qtd_disp(i)
+
+    => "sssississii"
+  */
+
   mysqli_stmt_bind_param(
     $stmt,
-    "ssissisii",
+    "sssississii",
     $titulo,
     $autor,
+    $editora,
     $ano,
     $isbn,
     $capaDb,
     $categoria,
     $sinopse,
+    $assuntos,
     $qtd_add,
     $qtd_add
   );
 
   mysqli_stmt_execute($stmt);
+
   mysqli_commit($conn);
 
-  flash_set('success', 'Livro cadastrado / exemplares adicionados com sucesso!');
+  flash_set("success", "Livro salvo com sucesso!");
   header("Location: listar.php"); exit;
 
 } catch (Throwable $e) {
   mysqli_rollback($conn);
-  flash_set('danger', 'Erro ao salvar: ' . $e->getMessage());
+  flash_set("danger", "Erro ao salvar: " . $e->getMessage());
   header("Location: cadastrar.php"); exit;
 }

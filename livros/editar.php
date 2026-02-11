@@ -4,6 +4,14 @@ include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
+/*
+  editar.php
+  - ISBN no topo
+  - Busca automática por ISBN (buscar_isbn.php)
+  - CDD com autocomplete (buscar_cdd.php)
+  - Editora + Assuntos preenchidos via ISBN
+*/
+
 $id = (int)($_GET['id'] ?? 0);
 
 $stmt = mysqli_prepare($conn, "SELECT * FROM livros WHERE id = ?");
@@ -16,8 +24,19 @@ if (!$l) { ?>
   <div class="container my-4">
     <div class="alert alert-danger mb-0">Livro não encontrado.</div>
   </div>
-  <?php include("../includes/footer.php"); exit; ?>
-<?php } ?>
+  <?php include("../includes/footer.php");
+  exit; ?>
+<?php }
+
+function h($s)
+{
+  return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8");
+}
+
+$categoriaAtual = $l['categoria'] ?? '';
+$categoriaAtualInt = is_numeric($categoriaAtual) ? (int)$categoriaAtual : 0;
+$categoriaAtualText = (string)$categoriaAtual;
+?>
 
 <div class="container my-4">
   <div class="page-card">
@@ -34,51 +53,78 @@ if (!$l) { ?>
       <input type="hidden" name="id" value="<?= (int)$l['id'] ?>">
 
       <div class="row g-3">
+
         <div class="col-12">
-          <label class="form-label">Título</label>
-          <input class="form-control" name="titulo" required value="<?= htmlspecialchars($l['titulo']) ?>">
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label">Autor</label>
-          <input class="form-control" name="autor" value="<?= htmlspecialchars($l['autor'] ?? '') ?>">
-        </div>
-
-        <div class="col-md-3">
-          <label class="form-label">Ano</label>
-          <input class="form-control" type="number" name="ano_publicacao" min="0"
-            value="<?= htmlspecialchars($l['ano_publicacao'] ?? '') ?>">
-        </div>
-
-        <div class="col-md-3">
           <label class="form-label">ISBN</label>
-          <input class="form-control" name="ISBN" maxlength="32"
-            value="<?= htmlspecialchars($l['ISBN'] ?? '') ?>">
-          <div class="form-text">Pode colar com traço. O sistema limpa e salva só números.</div>
+
+          <div class="input-group">
+            <span class="input-group-text bg-white">
+              <i class="bi bi-search"></i>
+            </span>
+
+            <input
+              class="form-control"
+              name="ISBN"
+              id="isbn"
+              value="<?= h($l['ISBN'] ?? '') ?>"
+              placeholder="Digite o ISBN (10 ou 13 dígitos)"
+              autocomplete="off"
+              required>
+          </div>
+
+          <div class="mt-2 d-flex align-items-center gap-3">
+            <img
+              id="coverPreview"
+              src="<?= h($l['capa_url'] ?? '') ?>"
+              alt="Capa"
+              style="width:64px;height:96px;object-fit:cover;border-radius:10px;<?= empty($l['capa_url']) ? 'display:none;' : '' ?>border:1px solid #e7e1d6;"
+              onerror="this.style.display='none';">
+            <div class="text-muted small" id="coverHint">
+              Digite um ISBN válido para buscar automaticamente os dados.
+            </div>
+          </div>
+
+          <input type="hidden" name="capa_url" id="capa_url" value="<?= h($l['capa_url'] ?? '') ?>">
         </div>
 
-        <!-- CDD (Categoria) com autocomplete igual ao cadastrar -->
+        <div class="col-md-4">
+          <label class="form-label">Título</label>
+          <input class="form-control" name="titulo" id="titulo" required value="<?= h($l['titulo'] ?? '') ?>">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Autor</label>
+          <input class="form-control" name="autor" id="autor" value="<?= h($l['autor'] ?? '') ?>">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Editora</label>
+          <input class="form-control" name="editora" id="editora" value="<?= h($l['editora'] ?? '') ?>">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">Ano</label>
+          <input class="form-control" type="number" name="ano_publicacao" id="ano_publicacao" min="0"
+            value="<?= h($l['ano_publicacao'] ?? '') ?>">
+        </div>
+
         <div class="col-12 position-relative">
           <label class="form-label">CDD (Categoria)</label>
 
-          <input type="text" id="cdd" class="form-control"
+          <input
+            type="text"
+            id="cdd"
+            class="form-control"
             placeholder="Digite o código ou área"
             autocomplete="off"
-            value="<?= htmlspecialchars($l['categoria'] ?? '') ?>" required>
+            value="<?= h($categoriaAtualText) ?>"
+            required>
 
-          <input type="hidden" name="categoria" id="categoria" value="<?= (int)($l['categoria'] ?? 0) ?>">
+          <input type="hidden" name="categoria" id="categoria" value="<?= (int)$categoriaAtualInt ?>">
           <div id="resultadoCDD" class="list-group position-absolute w-100" style="z-index:1050;"></div>
-
-          <div class="form-text">Clique numa sugestão para preencher a categoria.</div>
+          <div class="form-text">Digite e clique numa sugestão para preencher.</div>
         </div>
 
-        <!-- SINOPSE -->
-        <div class="col-12">
-          <label class="form-label">Sinopse</label>
-          <textarea class="form-control" name="sinopse" rows="4"><?= htmlspecialchars($l['sinopse'] ?? '') ?></textarea>
-        </div>
-
-        <!-- Quantidade -->
         <div class="col-md-4">
           <label class="form-label">Total atual</label>
           <input class="form-control" value="<?= (int)($l['qtd_total'] ?? 0) ?>" disabled>
@@ -87,21 +133,28 @@ if (!$l) { ?>
         <div class="col-md-4">
           <label class="form-label">Adicionar exemplares</label>
           <input class="form-control" type="number" name="qtd_add" min="0" value="0">
-          <div class="form-text">Se você colocar 5, ele soma +5 no total e +5 nos disponíveis.</div>
+          <div class="form-text">Soma no total e nos disponíveis.</div>
         </div>
 
-        <!-- Capa -->
+        <div class="col-12">
+          <label class="form-label">Sinopse</label>
+          <textarea class="form-control" name="sinopse" id="sinopse" rows="4"><?= h($l['sinopse'] ?? '') ?></textarea>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Assuntos</label>
+          <input class="form-control" name="assuntos" id="assuntos" value="<?= h($l['assuntos'] ?? '') ?>">
+        </div>
+
         <div class="col-md-6">
           <label class="form-label">Capa por URL (opcional)</label>
-          <input class="form-control" name="capa_url" placeholder="Cole um link de imagem (https://...)"
-            value="<?= htmlspecialchars($l['capa_url'] ?? '') ?>">
-          <div class="form-text">Se preencher, vira a capa do livro.</div>
+          <input class="form-control" id="capa_url_manual" placeholder="Cole um link de imagem (https://...)"
+            value="<?= h($l['capa_url'] ?? '') ?>">
         </div>
 
         <div class="col-md-6">
           <label class="form-label">Upload de capa (opcional)</label>
-          <input class="form-control" type="file" name="capa_arquivo" accept="image/*">
-          <div class="form-text">Se enviar, ele salva no servidor e troca a capa.</div>
+          <input class="form-control" type="file" name="capa_arquivo" id="capa_arquivo" accept="image/*">
         </div>
 
         <div class="col-md-4">
@@ -110,12 +163,12 @@ if (!$l) { ?>
             <option value="1" <?= ((int)$l['disponivel'] === 1) ? "selected" : "" ?>>Sim</option>
             <option value="0" <?= ((int)$l['disponivel'] === 0) ? "selected" : "" ?>>Não</option>
           </select>
-          <div class="form-text">Se estiver “Não”, ele fica baixado do acervo.</div>
         </div>
+
       </div>
 
-      <div class="form-actions">
-        <button class="btn btn-brand" type="submit">
+      <div class="form-actions mt-3">
+        <button class="btn btn-pill" type="submit">
           <i class="bi bi-check2"></i>
           Atualizar
         </button>
@@ -127,18 +180,144 @@ if (!$l) { ?>
 </div>
 
 <script>
-  // Autocomplete do CDD (igual ao cadastrar)
+  function onlyDigits(s) {
+    return (s || '').replace(/\D/g, '');
+  }
+
+  const isbnInput = document.getElementById("isbn");
+  const tituloInput = document.getElementById("titulo");
+  const autorInput = document.getElementById("autor");
+  const editoraInput = document.getElementById("editora");
+  const anoInput = document.getElementById("ano_publicacao");
+  const sinopseInput = document.getElementById("sinopse");
+  const assuntosInput = document.getElementById("assuntos");
+
+  const imgPrev = document.getElementById("coverPreview");
+  const hint = document.getElementById("coverHint");
+  const capaHidden = document.getElementById("capa_url");
+
+  const capaManual = document.getElementById("capa_url_manual");
+  const capaFile = document.getElementById("capa_arquivo");
+
   const inputCDD = document.getElementById("cdd");
   const resultadoCDD = document.getElementById("resultadoCDD");
   const hiddenCat = document.getElementById("categoria");
 
-  inputCDD.addEventListener("keyup", () => {
-    const q = inputCDD.value.trim();
-    if (q.length < 2) { resultadoCDD.innerHTML = ""; return; }
+  capaManual.addEventListener("input", () => {
+    const url = capaManual.value.trim();
+    if (!url) return;
 
-    fetch("buscar_cdd.php?q=" + encodeURIComponent(q))
-      .then(res => res.text())
-      .then(html => resultadoCDD.innerHTML = html);
+    capaHidden.value = url;
+    imgPrev.src = url;
+    imgPrev.style.display = "block";
+    hint.textContent = "Capa definida por URL manual.";
+  });
+
+  capaFile.addEventListener("change", () => {
+    const f = capaFile.files && capaFile.files[0];
+    if (!f) return;
+
+    const url = URL.createObjectURL(f);
+    imgPrev.src = url;
+    imgPrev.style.display = "block";
+    hint.textContent = "Capa definida por upload.";
+  });
+
+  let isbnTimer = null;
+  let lastIsbnFetched = "";
+
+  isbnInput.addEventListener("input", () => {
+    clearTimeout(isbnTimer);
+    isbnTimer = setTimeout(() => buscarPorIsbnAuto(), 400);
+  });
+
+  async function buscarPorIsbnAuto() {
+    const isbn = onlyDigits(isbnInput.value);
+
+    if (!(isbn.length === 10 || isbn.length === 13)) {
+      hint.textContent = "Digite um ISBN válido (10 ou 13 dígitos) para buscar automaticamente.";
+      return;
+    }
+
+    if (isbn === lastIsbnFetched) return;
+
+    const hasCoverOverride =
+      (capaManual.value.trim() !== "") ||
+      (capaFile.files && capaFile.files.length);
+
+    hint.textContent = "Buscando dados do livro...";
+    lastIsbnFetched = isbn;
+
+    try {
+      const resp = await fetch(`buscar_isbn.php?isbn=${encodeURIComponent(isbn)}`, {
+        headers: {
+          "X-Requested-With": "fetch"
+        }
+      });
+
+      if (!resp.ok) {
+        hint.textContent = `Erro ao buscar ISBN (HTTP ${resp.status}).`;
+        return;
+      }
+
+      const data = await resp.json();
+
+      if (!data || !data.ok) {
+        hint.textContent = "Não encontrei esse ISBN.";
+        return;
+      }
+
+      if (data.titulo) tituloInput.value = data.titulo;
+      if (data.autor && String(data.autor).toLowerCase() !== "author not identified") autorInput.value = data.autor;
+      if (data.editora) editoraInput.value = data.editora;
+      if (data.ano_publicacao) anoInput.value = data.ano_publicacao;
+      if (data.sinopse) sinopseInput.value = data.sinopse;
+      if (data.assuntos) assuntosInput.value = data.assuntos;
+
+      if (!hasCoverOverride && data.capa_url) {
+        capaHidden.value = data.capa_url;
+        capaManual.value = data.capa_url;
+        imgPrev.src = data.capa_url;
+        imgPrev.style.display = "block";
+      }
+
+      const src = data.source ? data.source : "api";
+      hint.textContent = `Dados carregados (${src}).`;
+
+    } catch (e) {
+      console.log(e);
+      hint.textContent = "Falha ao buscar ISBN.";
+    }
+  }
+
+  window.addEventListener("load", () => {
+    const isbn = onlyDigits(isbnInput.value);
+    if (isbn.length === 10 || isbn.length === 13) buscarPorIsbnAuto();
+  });
+
+  let cddTimer = null;
+
+  inputCDD.addEventListener("input", () => {
+    clearTimeout(cddTimer);
+
+    const q = inputCDD.value.trim();
+    hiddenCat.value = "";
+
+    if (q.length < 2) {
+      resultadoCDD.innerHTML = "";
+      return;
+    }
+
+    cddTimer = setTimeout(async () => {
+      try {
+        const resp = await fetch(`buscar_cdd.php?q=${encodeURIComponent(q)}`);
+        const html = await resp.text();
+        resultadoCDD.innerHTML = html;
+      } catch (e) {
+        console.log(e);
+        resultadoCDD.innerHTML = "";
+      }
+    }, 200);
   });
 
   resultadoCDD.addEventListener("click", (e) => {
@@ -149,6 +328,15 @@ if (!$l) { ?>
     hiddenCat.value = item.dataset.id || "";
     resultadoCDD.innerHTML = "";
   });
+
+  document.addEventListener("click", (e) => {
+    const inside = e.target.closest("#resultadoCDD") || e.target.closest("#cdd");
+    if (!inside) resultadoCDD.innerHTML = "";
+  });
+
+  if (!hiddenCat.value && /^\d+$/.test(inputCDD.value.trim())) {
+    hiddenCat.value = inputCDD.value.trim();
+  }
 </script>
 
 <?php include("../includes/footer.php"); ?>

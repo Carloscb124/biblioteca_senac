@@ -3,10 +3,16 @@ $titulo_pagina = "Histórico por usuário";
 include("../conexao.php");
 include("../includes/header.php");
 
-$usuarios = mysqli_query($conn, "SELECT id, nome FROM usuarios ORDER BY nome ASC");
+// Busca todos os usuários
+$usuarios_query = mysqli_query($conn, "SELECT id, nome FROM usuarios ORDER BY nome ASC");
+$lista_usuarios = [];
+while ($row = mysqli_fetch_assoc($usuarios_query)) {
+    $lista_usuarios[] = $row;
+}
 
 $uid = (int)($_GET['usuario'] ?? 0);
 $historico = null;
+$nome_selecionado = "";
 
 $kpi = ['total' => 0, 'devolvidos' => 0, 'abertos' => 0, 'atrasados' => 0];
 
@@ -36,15 +42,47 @@ if ($uid > 0) {
     mysqli_stmt_bind_param($stmt, "i", $uid);
     mysqli_stmt_execute($stmt);
     $historico = mysqli_stmt_get_result($stmt);
+
+    // Encontrar nome do selecionado
+    foreach ($lista_usuarios as $u) {
+        if ((int)$u['id'] === $uid) { $nome_selecionado = $u['nome']; break; }
+    }
 }
 
 $labels = ["Aberto", "Devolvido", "Atrasado"];
-$values = [
-    (int)$kpi['abertos'],
-    (int)$kpi['devolvidos'],
-    (int)$kpi['atrasados'],
-];
+$values = [(int)$kpi['abertos'], (int)$kpi['devolvidos'], (int)$kpi['atrasados']];
 ?>
+
+<style>
+    /* Estilização para deixar igual à segunda imagem */
+    .search-container { position: relative; }
+    
+    .custom-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        z-index: 1000;
+        display: none;
+        max-height: 250px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .result-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f1f1;
+        color: #333;
+        transition: background 0.2s;
+    }
+
+    .result-item:last-child { border-bottom: none; }
+    .result-item:hover { background-color: #f8f9fa; }
+</style>
 
 <div class="container my-4">
     <div class="page-card">
@@ -53,41 +91,42 @@ $values = [
             <a class="btn btn-pill" href="index.php"><i class="bi bi-arrow-left"></i> Voltar</a>
         </div>
 
-        <form class="row g-3 mt-1">
-            <div class="col-md-6">
-                <label class="form-label">Selecione um usuário</label>
-                <select name="usuario" class="form-select" onchange="this.form.submit()">
-                    <option value="">Escolha...</option>
-                    <?php while ($u = mysqli_fetch_assoc($usuarios)) { ?>
-                        <option value="<?= (int)$u['id'] ?>" <?= ($uid == (int)$u['id']) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($u['nome']) ?>
-                        </option>
-                    <?php } ?>
-                </select>
+        <form class="row g-3 mt-1" id="formBusca" method="GET">
+            <div class="col-md-6 search-container">
+                <label class="form-label">Pesquisar usuário</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input 
+                        type="text" 
+                        id="inputUsuario" 
+                        class="form-control" 
+                        placeholder="Digite o nome..."
+                        value="<?= htmlspecialchars($nome_selecionado) ?>"
+                        autocomplete="off"
+                    >
+                    <input type="hidden" name="usuario" id="usuarioId" value="<?= $uid ?>">
+                </div>
+                <div id="resultsBox" class="custom-results"></div>
             </div>
         </form>
 
         <?php if ($uid > 0) { ?>
-            <!-- KPIs -->
             <div class="report-kpis mt-4">
                 <div class="report-card">
                     <div class="report-card__top"><i class="bi bi-list-check"></i><span>Total</span></div>
                     <div class="report-card__num"><?= (int)$kpi['total'] ?></div>
                     <div class="report-card__foot">registros</div>
                 </div>
-
                 <div class="report-card">
                     <div class="report-card__top"><i class="bi bi-check-circle"></i><span>Devolvidos</span></div>
                     <div class="report-card__num"><?= (int)$kpi['devolvidos'] ?></div>
                     <div class="report-card__foot">finalizados</div>
                 </div>
-
                 <div class="report-card">
                     <div class="report-card__top"><i class="bi bi-clock-history"></i><span>Abertos</span></div>
                     <div class="report-card__num"><?= (int)$kpi['abertos'] ?></div>
                     <div class="report-card__foot">em andamento</div>
                 </div>
-
                 <div class="report-card report-card--danger">
                     <div class="report-card__top"><i class="bi bi-exclamation-triangle"></i><span>Atrasados</span></div>
                     <div class="report-card__num"><?= (int)$kpi['atrasados'] ?></div>
@@ -95,18 +134,15 @@ $values = [
                 </div>
             </div>
 
-            <!-- Gráfico -->
             <div class="report-chart mt-4">
                 <div class="report-chart__head">
                     <strong>Status dos empréstimos</strong>
-                    <span class="text-muted small">usuário selecionado</span>
                 </div>
                 <div class="chart-wrap">
                     <canvas id="chartStatusUsuario"></canvas>
                 </div>
             </div>
 
-            <!-- Tabela -->
             <div class="mt-4 table-base-wrap">
                 <div class="table-responsive">
                     <table class="table table-base align-middle mb-0">
@@ -141,11 +177,6 @@ $values = [
                                     </td>
                                 </tr>
                             <?php } ?>
-                            <?php if ((int)$kpi['total'] === 0) { ?>
-                                <tr>
-                                    <td colspan="4" class="text-muted">Nenhum registro para esse usuário.</td>
-                                </tr>
-                            <?php } ?>
                         </tbody>
                     </table>
                 </div>
@@ -153,30 +184,60 @@ $values = [
 
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
             <script>
-                const labels = <?= json_encode($labels) ?>;
-                const values = <?= json_encode($values) ?>;
-
                 new Chart(document.getElementById('chartStatusUsuario'), {
                     type: 'doughnut',
                     data: {
-                        labels,
-                        datasets: [{
-                            data: values
-                        }]
+                        labels: <?= json_encode($labels) ?>,
+                        datasets: [{ data: <?= json_encode($values) ?>, backgroundColor: ['#f39c12', '#27ae60', '#e74c3c'] }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
                 });
             </script>
         <?php } ?>
-
     </div>
 </div>
+
+<script>
+// Dados dos usuários passados do PHP para o JS
+const usuarios = <?= json_encode($lista_usuarios) ?>;
+const input = document.getElementById('inputUsuario');
+const resultsBox = document.getElementById('resultsBox');
+const hiddenId = document.getElementById('usuarioId');
+
+input.addEventListener('input', function() {
+    const val = this.value.toLowerCase();
+    resultsBox.innerHTML = '';
+    
+    if (!val) {
+        resultsBox.style.display = 'none';
+        return;
+    }
+
+    const filtered = usuarios.filter(u => u.nome.toLowerCase().includes(val));
+
+    if (filtered.length > 0) {
+        filtered.forEach(u => {
+            const div = document.createElement('div');
+            div.classList.add('result-item');
+            div.textContent = u.nome;
+            div.onclick = function() {
+                input.value = u.nome;
+                hiddenId.value = u.id;
+                resultsBox.style.display = 'none';
+                document.getElementById('formBusca').submit();
+            };
+            resultsBox.appendChild(div);
+        });
+        resultsBox.style.display = 'block';
+    } else {
+        resultsBox.style.display = 'none';
+    }
+});
+
+// Fecha a lista se clicar fora
+document.addEventListener('click', function(e) {
+    if (e.target !== input) resultsBox.style.display = 'none';
+});
+</script>
 
 <?php include("../includes/footer.php"); ?>

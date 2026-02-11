@@ -31,6 +31,11 @@ include("../../includes/header.php");
               <i class="bi bi-arrow-repeat"></i>
               Exportar Empréstimos (Histórico)
             </a>
+
+            <a class="btn btn-pill" href="exportar_usuarios.php">
+              <i class="bi bi-people"></i>
+              Exportar Usuários (Leitores)
+            </a>
           </div>
         </div>
       </div>
@@ -49,6 +54,11 @@ include("../../includes/header.php");
             <a class="btn btn-pill" href="importar_emprestimos.php">
               <i class="bi bi-arrow-repeat"></i>
               Importar Empréstimos
+            </a>
+
+            <a class="btn btn-pill" href="importar_usuarios.php">
+              <i class="bi bi-person-plus"></i>
+              Importar Usuários
             </a>
             
           </div>

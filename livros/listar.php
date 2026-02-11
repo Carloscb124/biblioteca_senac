@@ -161,7 +161,7 @@ $q = trim($_GET['q'] ?? '');
         <a href="#" class="btn btn-outline-secondary" id="detBtnEditar">
           <i class="bi bi-pencil me-1"></i>Editar
         </a>
-        <button type="button" class="btn btn-brand" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" class="btn btn-pill" data-bs-dismiss="modal">Fechar</button>
       </div>
     </div>
   </div>
@@ -343,7 +343,7 @@ $q = trim($_GET['q'] ?? '');
     modal.show();
 
     try {
-      const resp = await fetch(`detalhes_livro.php?id=${encodeURIComponent(id)}`, {
+      const resp = await fetch(`buscar_detalhes.php?id=${encodeURIComponent(id)}`, {
         headers: { "X-Requested-With": "fetch" }
       });
       const data = await resp.json();

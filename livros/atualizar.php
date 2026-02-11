@@ -2,42 +2,41 @@
 include("../conexao.php");
 include("../includes/flash.php");
 
-// =======================
-// 1) Inputs
-// =======================
+/*
+  atualizar.php
+  - Atualiza livro existente
+  - Mantém editora/sinopse/assuntos/capa se vierem vazios
+  - qtd_add soma em qtd_total e qtd_disp
+*/
+
 $id = (int)($_POST["id"] ?? 0);
 
-$titulo    = trim($_POST['titulo'] ?? '');
-$autor     = trim($_POST['autor'] ?? '');
-$sinopse   = trim($_POST['sinopse'] ?? '');
+$titulo   = trim($_POST['titulo'] ?? '');
+$autor    = trim($_POST['autor'] ?? '');
+$editora  = trim($_POST['editora'] ?? '');
+$sinopse  = trim($_POST['sinopse'] ?? '');
+$assuntos = trim($_POST['assuntos'] ?? '');
 
-$anoRaw    = $_POST['ano_publicacao'] ?? '';
-$isbnRaw   = trim($_POST['ISBN'] ?? '');
+$anoRaw   = $_POST['ano_publicacao'] ?? '';
+$isbnRaw  = trim($_POST['ISBN'] ?? '');
 
 $categoria  = (int)($_POST['categoria'] ?? 0);
 $disponivel = (int)($_POST['disponivel'] ?? 1);
 
-// Quantidade pra adicionar (opcional)
-$qtd_add = (int)($_POST['qtd_add'] ?? 0);
+$qtd_add  = (int)($_POST['qtd_add'] ?? 0);
 
-// URL manual (opcional) - se vier vazia, mantém a atual
 $capa_url = trim($_POST['capa_url'] ?? '');
 
-// =======================
-// 2) Normalizações
-// =======================
+// Normalizações
 $ano = null;
 if ($anoRaw !== '' && is_numeric($anoRaw)) $ano = (int)$anoRaw;
 
-// ISBN salva só dígitos
 $isbn = preg_replace('/\D+/', '', $isbnRaw);
 
 if ($qtd_add < 0) $qtd_add = 0;
 $disponivel = ($disponivel === 1) ? 1 : 0;
 
-// =======================
-// 3) Validações
-// =======================
+// Validações
 if ($id < 1) {
   flash_set("danger", "ID inválido.");
   header("Location: listar.php"); exit;
@@ -55,9 +54,7 @@ if ($categoria < 1) {
   header("Location: editar.php?id=" . $id); exit;
 }
 
-// =======================
-// 4) Upload de capa (se tiver)
-// =======================
+// Upload de capa (opcional)
 if (isset($_FILES["capa_arquivo"]) && $_FILES["capa_arquivo"]["error"] === UPLOAD_ERR_OK) {
   $tmp  = $_FILES["capa_arquivo"]["tmp_name"];
   $name = $_FILES["capa_arquivo"]["name"] ?? "capa";
@@ -80,20 +77,25 @@ if (isset($_FILES["capa_arquivo"]) && $_FILES["capa_arquivo"]["error"] === UPLOA
 
 $capaDb = ($capa_url !== '') ? $capa_url : null;
 
-// =======================
-// 5) UPDATE
-// - Sinopse: se vier vazia, mantém a antiga
-// - Capa: se vier vazia, mantém a antiga
-// - qtd_add: soma no total e nos disponíveis
-// =======================
+// UPDATE com “mantém se vier vazio”
 $stmt = mysqli_prepare($conn, "
   UPDATE livros
   SET
     titulo = ?,
     autor = ?,
 
+    editora = CASE
+      WHEN ? IS NULL OR ? = '' THEN editora
+      ELSE ?
+    END,
+
     sinopse = CASE
       WHEN ? IS NULL OR ? = '' THEN sinopse
+      ELSE ?
+    END,
+
+    assuntos = CASE
+      WHEN ? IS NULL OR ? = '' THEN assuntos
       ELSE ?
     END,
 
@@ -112,33 +114,61 @@ $stmt = mysqli_prepare($conn, "
   WHERE id = ?
 ");
 
-// ✅ IMPORTANTÍSSIMO:
-// Aqui temos 15 placeholders (?) no SQL.
-// Então a string de tipos tem 15 letras.
-// s=string, i=inteiro
+/*
+  Ordem dos ? (21):
+  1 titulo (s)
+  2 autor (s)
+
+  3-5 editora (s,s,s)
+  6-8 sinopse (s,s,s)
+  9-11 assuntos (s,s,s)
+
+  12 ano_publicacao (i)
+  13 ISBN (s)
+  14 categoria (i)
+
+  15-17 capa_url (s,s,s)
+
+  18 qtd_add (i)
+  19 qtd_add (i)
+  20 disponivel (i)
+  21 id (i)
+
+  String de tipos (21 chars):
+  11x s, depois i, depois s, depois i, depois 3x s, depois 4x i
+  => "sssssssssssisisssiiii"
+*/
 
 mysqli_stmt_bind_param(
   $stmt,
-  "sssssisiissiiii",
-  $titulo,        // 1 s
-  $autor,         // 2 s
+  "sssssssssssisisssiiii",
+  $titulo,      // 1
+  $autor,       // 2
 
-  $sinopse,       // 3 s
-  $sinopse,       // 4 s
-  $sinopse,       // 5 s
+  $editora,     // 3
+  $editora,     // 4
+  $editora,     // 5
 
-  $ano,           // 6 i (pode ser null, mas funciona bem aqui)
-  $isbn,          // 7 s
-  $categoria,     // 8 i
+  $sinopse,     // 6
+  $sinopse,     // 7
+  $sinopse,     // 8
 
-  $capaDb,        // 9 s
-  $capaDb,        // 10 s
-  $capaDb,        // 11 s
+  $assuntos,    // 9
+  $assuntos,    // 10
+  $assuntos,    // 11
 
-  $qtd_add,       // 12 i
-  $qtd_add,       // 13 i
-  $disponivel,    // 14 i
-  $id             // 15 i
+  $ano,         // 12
+  $isbn,        // 13
+  $categoria,   // 14
+
+  $capaDb,      // 15
+  $capaDb,      // 16
+  $capaDb,      // 17
+
+  $qtd_add,     // 18
+  $qtd_add,     // 19
+  $disponivel,  // 20
+  $id           // 21
 );
 
 if (mysqli_stmt_execute($stmt)) {

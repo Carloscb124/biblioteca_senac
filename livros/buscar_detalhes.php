@@ -1,13 +1,12 @@
 <?php
-// livros/detalhes_livro.php
-// Retorna os detalhes de um livro por ID em JSON (para o modal)
-
-include("../auth/auth_guard.php");
 include("../conexao.php");
-
 header("Content-Type: application/json; charset=UTF-8");
 
-function onlyDigits($s){ return preg_replace('/\D+/', '', (string)$s); }
+/*
+  buscar_detalhes.php
+  - Recebe: ?id=...
+  - Retorna JSON do livro para modal/detalhes
+*/
 
 $id = (int)($_GET["id"] ?? 0);
 if ($id < 1) {
@@ -17,8 +16,8 @@ if ($id < 1) {
 
 $stmt = mysqli_prepare($conn, "
   SELECT
-    id, titulo, autor, ano_publicacao, ISBN, categoria,
-    sinopse, capa_url, qtd_total, qtd_disp, disponivel
+    id, titulo, autor, editora, ano_publicacao, ISBN, categoria,
+    sinopse, assuntos, capa_url, qtd_total, qtd_disp, disponivel
   FROM livros
   WHERE id = ?
   LIMIT 1
@@ -33,9 +32,9 @@ if (!$l) {
   exit;
 }
 
-$isbnDigits = onlyDigits($l["ISBN"] ?? "");
+$isbnDigits = preg_replace('/\D+/', '', (string)($l["ISBN"] ?? ""));
 
-// fallback de capa se não tiver capa_url salva
+// capa fallback
 $capa = trim((string)($l["capa_url"] ?? ""));
 if ($capa === "" && $isbnDigits !== "") {
   $capa = "https://covers.openlibrary.org/b/isbn/{$isbnDigits}-L.jpg?default=false";
@@ -47,10 +46,12 @@ echo json_encode([
     "id" => (int)$l["id"],
     "titulo" => (string)$l["titulo"],
     "autor" => (string)($l["autor"] ?? ""),
+    "editora" => (string)($l["editora"] ?? ""),
     "ano_publicacao" => $l["ano_publicacao"],
     "isbn" => (string)($l["ISBN"] ?? ""),
     "categoria" => $l["categoria"],
     "sinopse" => (string)($l["sinopse"] ?? ""),
+    "assuntos" => (string)($l["assuntos"] ?? ""),
     "capa_url" => $capa,
     "qtd_total" => (int)($l["qtd_total"] ?? 0),
     "qtd_disp" => (int)($l["qtd_disp"] ?? 0),
