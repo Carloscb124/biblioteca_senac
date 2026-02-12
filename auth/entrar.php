@@ -23,12 +23,18 @@ if (!$f || !password_verify($senha, $f['senha'])) {
   exit;
 }
 
+$cargo = strtoupper(trim($f['cargo'] ?? ''));
+if ($cargo !== 'ADMIN' && $cargo !== 'BIBLIOTECARIO') {
+  // Se tiver valor legado, joga como bibliotecário por segurança
+  $cargo = 'BIBLIOTECARIO';
+}
+
 if (session_status() === PHP_SESSION_NONE) session_start();
 $_SESSION['auth'] = [
   'id' => (int)$f['id'],
   'nome' => $f['nome'],
   'email' => $f['email'],
-  'cargo' => $f['cargo'],
+  'cargo' => $cargo,
 ];
 
 flash_set('success', 'Bem-vindo(a), ' . $f['nome'] . '!');

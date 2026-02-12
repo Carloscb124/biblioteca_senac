@@ -2,21 +2,22 @@
 include("../conexao.php");
 include("../includes/flash.php");
 
-// Pega e limpa dados do POST
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Pega dados
 $nome  = trim($_POST['nome'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $senha = $_POST['senha'] ?? '';
-$cargo = $_POST['cargo'] ?? 'funcionario';
+$cargo = strtoupper(trim($_POST['cargo'] ?? 'BIBLIOTECARIO'));
 
-// Guarda dados (exceto senha) para repopular o form em caso de erro
-if (session_status() === PHP_SESSION_NONE) session_start();
+// Guarda dados pra repopular
 $_SESSION['old_auth'] = [
   'nome' => $nome,
   'email' => $email,
   'cargo' => $cargo
 ];
 
-// Validações
+// Validações básicas
 if ($nome === '' || $email === '' || $senha === '') {
   flash_set('danger', 'Preencha nome, email e senha.');
   header("Location: cadastrar.php");
@@ -35,18 +36,31 @@ if (strlen($senha) < 6) {
   exit;
 }
 
-/**
- * Segurança:
- * Não deixe qualquer pessoa escolher "admin" no cadastro público.
- * Aqui forçamos sempre para "funcionario".
- * Depois, você promove um funcionário para admin direto no banco ou em tela restrita.
- */
-$cargo = 'funcionario';
+// Verifica se já existe algum funcionário
+$hasAny = false;
+$res = mysqli_query($conn, "SELECT 1 FROM funcionarios LIMIT 1");
+if ($res && mysqli_fetch_row($res)) $hasAny = true;
 
-// Hash da senha
+/*
+  Regra:
+  - Se NÃO existe ninguém: permite criar o primeiro ADMIN
+  - Se JÁ existe: só ADMIN logado pode criar, e cria BIBLIOTECARIO (por enquanto)
+*/
+if ($hasAny) {
+  include(__DIR__ . "/auth_guard.php");
+  require_admin();
+
+  // força bibliotecário: admin cria bibliotecário, e bibliotecário não cria admin
+  $cargo = 'BIBLIOTECARIO';
+} else {
+  // bootstrap: primeiro usuário precisa ser admin
+  $cargo = 'ADMIN';
+}
+
+// Hash
 $hash = password_hash($senha, PASSWORD_DEFAULT);
 
-// INSERT seguro
+// Insert
 $stmt = mysqli_prepare($conn, "
   INSERT INTO funcionarios (nome, email, senha, cargo, ativo)
   VALUES (?, ?, ?, ?, 1)
@@ -60,7 +74,6 @@ if (mysqli_stmt_execute($stmt)) {
   exit;
 }
 
-// Tratamento de erro (email duplicado geralmente é 1062)
 $errno = mysqli_errno($conn);
 if ($errno === 1062) {
   flash_set('warning', 'Esse email já está cadastrado.');

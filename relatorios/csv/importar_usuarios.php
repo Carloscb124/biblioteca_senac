@@ -4,6 +4,7 @@ include("../../auth/auth_guard.php");
 include("../../conexao.php");
 include("../../includes/header.php");
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['csv']['tmp_name'])) {
     $fh = fopen($_FILES['csv']['tmp_name'], 'r');
     $primeira = fgets($fh);

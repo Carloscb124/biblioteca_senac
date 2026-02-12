@@ -283,6 +283,31 @@ $categoriaAtualText = (string)$categoriaAtual;
 
       const src = data.source ? data.source : "api";
       hint.textContent = `Dados carregados (${src}).`;
+      // =========================
+      // CDD automático pelo ISBN
+      // =========================
+      // Só tenta se o usuário ainda não escolheu um CDD manualmente
+      if (!hiddenCat.value) {
+        try {
+          hint.textContent = `Dados carregados (${src}). Calculando CDD...`;
+
+          const respCDD = await fetch(`buscar_cdd_isbn.php?isbn=${encodeURIComponent(isbn)}`);
+          const cddData = await respCDD.json();
+
+          if (cddData && cddData.ok) {
+            inputCDD.value = cddData.cdd_text; // ex: "813 - Ficção..."
+            hiddenCat.value = cddData.cdd_id; // id real da tabela cdd
+            hint.textContent = `Dados carregados (${src}). CDD sugerido automaticamente.`;
+          } else {
+            hint.textContent = `Dados carregados (${src}). Não consegui sugerir CDD.`;
+            console.log("CDD auto:", cddData);
+          }
+        } catch (e) {
+          console.log("CDD auto falhou:", e);
+          hint.textContent = `Dados carregados (${src}). Falha ao sugerir CDD.`;
+        }
+      }
+
 
     } catch (e) {
       console.log(e);

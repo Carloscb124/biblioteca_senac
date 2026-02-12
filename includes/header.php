@@ -3,31 +3,31 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
+// carrega as funções flash_set e flash_get
+require_once(__DIR__ . "/flash.php");
+
 if (!isset($titulo_pagina)) $titulo_pagina = "Biblioteca";
 $base = "/biblioteca_senac";
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// caminho atual (sem querystring)
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_senac/relatorios/index.php
+// Detecta admin sem depender de includes (pra não quebrar header)
+$isAdmin = !empty($_SESSION['auth']) && strtoupper(trim($_SESSION['auth']['cargo'] ?? '')) === 'ADMIN';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
   <meta charset="UTF-8">
   <title><?= htmlspecialchars($titulo_pagina) ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="<?= $base ?>/assets/css/style.css">
 </head>
-
 <body class="app-body">
 
   <nav class="navbar navbar-expand-lg header-clean">
     <div class="container">
 
-      <!-- BRAND -->
       <a class="header-brand" href="<?= $base ?>/index.php">
         <span class="brand-icon">
           <i class="bi bi-book"></i>
@@ -43,7 +43,6 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
         <span class="navbar-toggler-icon"></span>
       </button>
 
-      <!-- MENU -->
       <div class="collapse navbar-collapse" id="menu">
         <ul class="navbar-nav mx-auto header-menu">
 
@@ -64,7 +63,7 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
           <li class="nav-item">
             <a class="nav-link <?= (strpos($path, $base . '/usuarios') !== false) ? 'active' : '' ?>"
               href="<?= $base ?>/usuarios/listar.php">
-              <i class="bi bi-people"></i> Leitores
+              <i class="bi bi-person"></i> Leitores
             </a>
           </li>
 
@@ -82,29 +81,30 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
             </a>
           </li>
 
+          <?php if ($isAdmin): ?>
+            <li class="nav-item">
+              <a class="nav-link <?= (strpos($path, $base . '/funcionarios') !== false) ? 'active' : '' ?>"
+                href="<?= $base ?>/funcionarios/listar.php">
+                <i class="bi bi-person-badge"></i> Funcionários
+              </a>
+            </li>
+          <?php endif; ?>
+
         </ul>
 
-        <!-- BLOCO DO USUÁRIO LOGADO (CANTO DIREITO) -->
         <?php if (!empty($_SESSION['auth'])): ?>
-          <div class="header-user ms-lg-3">
-
-            <span class="user-chip" title="<?= htmlspecialchars($_SESSION['auth']['email'] ?? '') ?>">
+          <div class="header-user">
+            <div class="user-chip">
               <span class="user-dot"></span>
-              <span class="user-name"><?= htmlspecialchars($_SESSION['auth']['nome']) ?></span>
-              <!-- <?php if (!empty($_SESSION['auth']['cargo'])): ?>
-                <span class="user-role"><?= htmlspecialchars($_SESSION['auth']['cargo']) ?></span>
-              <?php endif; ?> -->
-            </span>
+              <span class="user-name"><?= htmlspecialchars($_SESSION['auth']['nome'] ?? 'Usuário') ?></span>
+            </div>
 
-            <a href="<?= $base ?>/auth/sair.php" class="logout-btn" title="Sair do sistema">
+            <a href="<?= $base ?>/auth/sair.php" class="logout-btn">
               <i class="bi bi-box-arrow-right"></i>
-              <span class="d-none d-md-inline">Sair</span>
+              <span>Sair</span>
             </a>
-
           </div>
         <?php endif; ?>
-
-
       </div>
     </div>
   </nav>
@@ -112,15 +112,24 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // ex: /biblioteca_sen
   <main class="app-main">
 
     <?php
-    include_once __DIR__ . "/flash.php";
-    $flash = flash_get();
-    ?>
+    // Mostra uma notificação (se existir) e apaga da sessão
+    if (function_exists('flash_get')) {
+      $flash = flash_get();
+      if ($flash) {
+        $type = $flash['type'] ?? 'info';
+        $msg  = $flash['message'] ?? '';
 
-    <?php if ($flash) { ?>
-      <div class="container my-3">
-        <div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show flash-msg mb-0" role="alert">
-          <?= htmlspecialchars($flash['message']) ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        // garante que só vai cair nas classes do Bootstrap
+        $allowed = ['success', 'danger', 'warning', 'info'];
+        if (!in_array($type, $allowed, true)) $type = 'info';
+  ?>
+        <div class="container mt-3">
+          <div class="alert alert-<?= htmlspecialchars($type) ?> alert-dismissible fade show flash-msg" role="alert">
+            <?= nl2br(htmlspecialchars($msg)) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
         </div>
-      </div>
-    <?php } ?>
+  <?php
+      }
+    }
+  ?>

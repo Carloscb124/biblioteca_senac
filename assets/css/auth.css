@@ -1,155 +1,156 @@
-/* =========================
-   AUTH (Login / Cadastro)
-========================= */
+/* ============================================================
+   ESTILO DE AUTENTICAÇÃO (LOGIN / REGISTO) - VERSÃO MINIMALISTA
+   ============================================================ */
 
-.auth-wrap{
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: #f3efe6;
+.auth-wrap {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #f1ede4 !important; /* Cor bege sólida das imagens */
 }
 
-/* Lado esquerdo */
-.auth-left{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding: 40px;
-  border-right: 1px solid rgba(0,0,0,.08);
+/* Lado Esquerdo - Marca */
+.auth-left {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    border-right: 1px solid rgba(0,0,0,.05);
 }
 
-.auth-brand{
-  text-align:center;
-  max-width: 420px;
+.auth-brand {
+    text-align: center;
+    max-width: 420px;
 }
 
-.auth-brand .logo{
-  width: 72px;
-  height: 72px;
-  border-radius: 999px;
-  background: rgba(31,93,80,.12);
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  color: #1f5d50;
-  font-size: 30px;
-  margin-bottom: 18px;
+.auth-brand .logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #d9e2df; /* Verde acinzentado claro do ícone */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #1f5d50;
+    font-size: 30px;
+    margin-bottom: 18px;
 }
 
-.auth-brand h1{
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 800;
-  margin: 0 0 10px;
-  color: #3b2f23;
+.auth-brand h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 800;
+    margin: 0 0 10px;
+    color: #3b2f23;
 }
 
-.auth-brand p{
-  margin: 0;
-  color: rgba(59,47,35,.75);
-  line-height: 1.4;
+.auth-brand p {
+    color: #5d4a37;
+    line-height: 1.4;
+    font-size: 15px;
 }
 
-.auth-sep{
-  height:1px;
-  background: rgba(0,0,0,.10);
-  margin: 22px 0;
+.auth-sep {
+    height: 1px;
+    background: rgba(0,0,0,.10);
+    margin: 22px 0;
 }
 
-.auth-feature{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  color: rgba(59,47,35,.80);
-  font-weight: 600;
-  font-size: 14px;
-  justify-content: center;
+.auth-feature {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #5d4a37;
+    font-weight: 600;
+    font-size: 14px;
+    justify-content: center;
 }
 
-.auth-feature i{
-  color:#1f5d50;
-  background: rgba(31,93,80,.10);
-  border-radius: 10px;
-  padding: 8px;
+.auth-feature i {
+    color: #1f5d50;
+    background: #e1dcd1;
+    border-radius: 4px;
+    padding: 6px;
 }
 
-/* Lado direito */
-.auth-right{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding: 40px;
+/* Lado Direito - Formulários */
+.auth-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
 }
 
-.auth-card{
-  width: 100%;
-  max-width: 420px;
+/* Transformação do Card: removemos o fundo branco e sombras para o estilo da Imagem 1 */
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: transparent !important; /* Torna o fundo invisível */
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
 }
 
-.auth-title{
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 800;
-  color: #3b2f23;
-  margin-bottom: 2px;
+.auth-title {
+    font-family: Georgia, serif;
+    font-weight: 800;
+    color: #3b2f23;
+    margin-bottom: 4px;
 }
 
-.auth-sub{
-  color: rgba(59,47,35,.75);
-  margin-bottom: 18px;
+.auth-sub {
+    color: #5d4a37;
+    margin-bottom: 25px;
+    font-size: 14px;
 }
 
-.auth-links{
-  margin-top: 14px;
-  text-align:center;
-  color: rgba(59,47,35,.75);
-  font-size: 14px;
+/* Inputs Retangulares */
+.auth-card .form-label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #3b2f23;
+    font-size: 14px;
 }
 
-.auth-links a{
-  color: #1f5d50;
-  font-weight: 800;
-  text-decoration: none;
+.auth-card .form-control {
+    border-radius: 4px !important; /* Cantos quase retos conforme imagem */
+    padding: 12px;
+    border: 1px solid #d1ccc0 !important;
+    background-color: transparent !important;
 }
 
-/* Responsivo */
-@media (max-width: 992px){
-  .auth-wrap{
-    grid-template-columns: 1fr;
-  }
-
-  .auth-left{
-    border-right: none;
-    border-bottom: 1px solid rgba(0,0,0,.08);
-  }
-}
-
-/* Botão principal (login / cadastro) */
+/* Botão Verde Retangular */
 .auth-btn {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  padding: 12px 18px;
-  border-radius: 999px;
-
-  background-color: #1f5d50;
-  color: #fff;
-
-  font-weight: 800;
-  font-size: 15px;
-  border: none;
-  cursor: pointer;
-
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.auth-btn i {
-  font-size: 18px;
+    width: 100%;
+    background-color: #1f5d50 !important;
+    color: #fff !important;
+    padding: 12px;
+    border-radius: 6px !important; /* Estilo retangular da Imagem 1 */
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: filter 0.2s;
 }
 
 .auth-btn:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
+    filter: brightness(1.1);
+}
+
+.auth-links {
+    margin-top: 20px;
+    text-align: center;
+    color: #5d4a37;
+    font-size: 14px;
+}
+
+.auth-links a {
+    color: #1f5d50;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+/* Responsivo */
+@media (max-width: 992px) {
+    .auth-wrap { grid-template-columns: 1fr; }
+    .auth-left { border-right: none; border-bottom: 1px solid rgba(0,0,0,.08); }
 }

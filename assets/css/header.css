@@ -1,133 +1,123 @@
-.header-clean{
-  background: #f6f1e8 !important;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  box-shadow: 0 2px 10px rgba(0,0,0,.05);
+/* Reset e Variáveis de Base (caso não estejam no seu root) */
+:root {
+  --green: #1f5d50;
+  --gold: #d4af37;
+  --muted: #6c757d;
 }
 
-.header-clean a{ text-decoration: none !important; }
+.header-clean {
+  background: #f6f1e8 !important; /* Fundo bege da imagem 1 */
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  box-shadow: none !important; /* Remove a sombra da imagem 2 */
+  padding: 0.5rem 0;
+}
 
-.header-brand{
+.header-clean a { text-decoration: none !important; }
+
+/* Logotipo / Brand */
+.header-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--green) !important;
+  gap: 10px;
+  color: #2c241d !important;
 }
 
-.header-brand:hover{ color: var(--green) !important; }
-
-.header-brand .brand-icon{
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
+.header-brand .brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px; /* Menos arredondado que o original */
   background: var(--green);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
 }
 
-.header-brand .brand-text{
+.header-brand .brand-text {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Georgia, "Times New Roman", serif; /* Fonte serifada da imagem 1 */
 }
 
-.header-brand .brand-sub{ font-size: 13px; color: var(--muted); }
-.header-brand .brand-sep{ color: var(--gold); }
+.header-brand .brand-sub { 
+  font-size: 14px; 
+  color: #5d4a37; 
+}
 
-.header-menu .nav-link{
-  color: var(--green) !important;
-  font-weight: 600;
-  padding: 10px 14px;
-  border-radius: 10px;
+.header-brand .brand-sep { color: #8b7355; margin: 0 2px; }
+
+/* Menu de Navegação */
+.header-menu .nav-link {
+  color: #5d4a37 !important;
+  font-family: Georgia, serif;
+  font-weight: 500;
+  padding: 8px 16px !important;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: background .15s ease, color .15s ease;
+  transition: all 0.2s ease;
 }
 
-.header-menu .nav-link:hover{
-  background: rgba(31,93,80,.12);
+.header-menu .nav-link:hover {
+  background: rgba(31,93,80,.05);
 }
 
-
-.header-menu .nav-link.active{
-  background: var(--green);
+/* Item Ativo (Retângulo verde da imagem 1) */
+.header-menu .nav-link.active {
+  background: var(--green) !important;
   color: #fff !important;
 }
 
-.header-menu .nav-link i{ color: inherit; }
-
-/* bloco do usuário no header */
-.header-user{
-  display:flex;
-  align-items:center;
-  gap: 12px;
+/* Bloco do Usuário (Canto Direito) */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-/* “quadradinho suave” do usuário */
-.user-chip{
-  display:flex;
-  align-items:center;
+.user-chip {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: rgba(255,255,255,.65);
-  border: 1px solid rgba(0,0,0,.10);
-  box-shadow: 0 6px 14px rgba(0,0,0,.05);
-  text-decoration: none;
-  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 6px; /* Quadrado suave */
+  background: #e6ded1; /* Cor de fundo sólida da imagem 1 */
+  border: none;
+  box-shadow: none;
 }
 
-/* bolinha de status */
-.user-dot{
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #1f5d50;
-  box-shadow: 0 0 0 3px rgba(31,93,80,.12);
+.user-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #15803d; /* Verde de status */
 }
 
-/* nome */
-.user-name{
-  color: #22302c;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-/* cargo/tag */
-/* .user-role{
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(31,93,80,.10);
-  border: 1px solid rgba(31,93,80,.18);
-  color: #1f5d50;
-  text-transform: capitalize;
-  font-weight: 600;
-} */
-
-/* botão sair */
-.logout-btn{
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid rgba(31,93,80,.25);
-  color: #1f5d50;
-  font-weight: 700;
+.user-name {
+  color: #2c241d;
   font-size: 13px;
-  text-decoration: none;
-  transition: background .15s ease, transform .08s ease;
+  font-family: Georgia, "Times New Roman", serif; /* Para parecer o ID da imagem 1 */
+  font-weight: 500;
 }
 
-.logout-btn:hover{
-  background: rgba(31,93,80,.10);
-  transform: translateY(-1px);
-  color: #1f5d50;
+/* Botão Sair */
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5d4a37;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  transition: opacity 0.2s;
 }
+
+.logout-btn:hover {
+  color: var(--green);
+  opacity: 0.8;
+}
+
+.logout-btn i { font-size: 18px; }
 

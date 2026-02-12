@@ -4,6 +4,7 @@ include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
+
 /*
   cadastrar.php
   - ISBN no topo
@@ -13,7 +14,10 @@ include("../includes/header.php");
   - Envia para salvar.php
 */
 
-function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
+function h($s)
+{
+  return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8");
+}
 ?>
 
 <div class="container my-4">
@@ -46,8 +50,7 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
               id="isbn"
               placeholder="Digite o ISBN (10 ou 13 dígitos, com ou sem traços)"
               autocomplete="off"
-              required
-            >
+              required>
           </div>
 
           <div class="mt-2 d-flex align-items-center gap-3">
@@ -56,8 +59,7 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
               src=""
               alt="Capa do livro"
               style="width:64px;height:96px;object-fit:cover;border-radius:10px;display:none;border:1px solid #e7e1d6;"
-              onerror="this.style.display='none';"
-            >
+              onerror="this.style.display='none';">
             <div class="text-muted small" id="coverHint">Digite um ISBN válido para buscar automaticamente os dados.</div>
           </div>
 
@@ -103,8 +105,7 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
             class="form-control"
             placeholder="Digite o código ou área"
             autocomplete="off"
-            required
-          >
+            required>
 
           <!-- ID numérico do CDD para o banco -->
           <input type="hidden" name="categoria" id="categoria" value="">
@@ -154,7 +155,9 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
 </div>
 
 <script>
-  function onlyDigits(s){ return (s || '').replace(/\D/g, ''); }
+  function onlyDigits(s) {
+    return (s || '').replace(/\D/g, '');
+  }
 
   // Campos do livro
   const isbnInput = document.getElementById("isbn");
@@ -229,7 +232,9 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
 
     try {
       const resp = await fetch(`buscar_isbn.php?isbn=${encodeURIComponent(isbn)}`, {
-        headers: { "X-Requested-With": "fetch" }
+        headers: {
+          "X-Requested-With": "fetch"
+        }
       });
 
       if (!resp.ok) {
@@ -268,6 +273,31 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, "UTF-8"); }
 
       const src = data.source ? data.source : "api";
       hint.textContent = `Dados carregados (${src}).`;
+      // =========================
+      // CDD automático pelo ISBN
+      // =========================
+      // Só tenta se o usuário ainda não escolheu um CDD manualmente
+      if (!hiddenCat.value) {
+        try {
+          hint.textContent = `Dados carregados (${src}). Calculando CDD...`;
+
+          const respCDD = await fetch(`buscar_cdd_isbn.php?isbn=${encodeURIComponent(isbn)}`);
+          const cddData = await respCDD.json();
+
+          if (cddData && cddData.ok) {
+            inputCDD.value = cddData.cdd_text; // ex: "813 - Ficção..."
+            hiddenCat.value = cddData.cdd_id; // id real da tabela cdd
+            hint.textContent = `Dados carregados (${src}). CDD sugerido automaticamente.`;
+          } else {
+            hint.textContent = `Dados carregados (${src}). Não consegui sugerir CDD.`;
+            console.log("CDD auto:", cddData);
+          }
+        } catch (e) {
+          console.log("CDD auto falhou:", e);
+          hint.textContent = `Dados carregados (${src}). Falha ao sugerir CDD.`;
+        }
+      }
+
 
     } catch (e) {
       console.log(e);
