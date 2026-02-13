@@ -2,11 +2,17 @@
 // auth_guard.php
 // - Mantém sessão
 // - Centraliza regras de permissão (ADMIN / BIBLIOTECARIO)
-// - NÃO depende do front-end; o bloqueio é no PHP (backend)
+// - Bloqueia acesso automaticamente
+// - Impede cache de páginas protegidas
 
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
+
+// impede cache de páginas após logout
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 
 $base = "/biblioteca_senac";
 
@@ -24,7 +30,6 @@ function require_login() {
 
 /**
  * Retorna o cargo/role atual, normalizado.
- * (Se tiver valores antigos tipo "funcionario", converte pra BIBLIOTECARIO)
  */
 function auth_role(): string {
   $cargo = strtoupper(trim($_SESSION['auth']['cargo'] ?? ''));
@@ -33,9 +38,12 @@ function auth_role(): string {
   if ($cargo === 'FUNCIONARIO' || $cargo === 'FUNCIONÁ RIO' || $cargo === 'FUNCIONÁRIO') {
     $cargo = 'BIBLIOTECARIO';
   }
-  if ($cargo === 'BIBLIOTECARIO' || $cargo === 'ADMIN') return $cargo;
 
-  // qualquer coisa fora do padrão vira bibliotecário por segurança
+  if ($cargo === 'ADMIN' || $cargo === 'BIBLIOTECARIO') {
+    return $cargo;
+  }
+
+  // fallback seguro
   return 'BIBLIOTECARIO';
 }
 
@@ -51,12 +59,11 @@ function is_bibliotecario(): bool {
 }
 
 /**
- * Permite ADMIN e BIBLIOTECARIO (qualquer um que opere o sistema)
+ * Permite ADMIN e BIBLIOTECARIO
  */
 function require_staff() {
   require_login();
 
-  // aqui já garante que auth_role() retorna algo válido
   $role = auth_role();
   if ($role !== 'ADMIN' && $role !== 'BIBLIOTECARIO') {
     http_response_code(403);
@@ -66,7 +73,7 @@ function require_staff() {
 }
 
 /**
- * Bloqueia se não for ADMIN
+ * Somente ADMIN
  */
 function require_admin() {
   require_login();
@@ -79,9 +86,15 @@ function require_admin() {
 }
 
 /**
- * BLOQUEIO para ações de exclusão:
- * Bibliotecário NÃO pode excluir
+ * Bloqueio para exclusão
  */
 function require_can_delete() {
-  require_admin(); // excluir = só ADMIN
+  require_admin();
 }
+
+/* =========================
+   BLOQUEIO AUTOMÁTICO
+   Qualquer página que incluir
+   este arquivo já exige login
+========================= */
+require_staff();

@@ -1,4 +1,5 @@
 <?php
+include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/flash.php");
 
@@ -12,32 +13,38 @@ if ($id <= 0) {
 mysqli_begin_transaction($conn);
 
 try {
-  $stmt = mysqli_prepare($conn, "SELECT id_livro, devolvido FROM emprestimos WHERE id = ? FOR UPDATE");
+  $stmt = mysqli_prepare($conn, "
+    SELECT id_livro, devolvido
+    FROM emprestimo_itens
+    WHERE emprestimo_id = ?
+    FOR UPDATE
+  ");
   mysqli_stmt_bind_param($stmt, "i", $id);
   mysqli_stmt_execute($stmt);
   $res = mysqli_stmt_get_result($stmt);
-  $e = mysqli_fetch_assoc($res);
 
-  if (!$e) throw new Exception("Empréstimo não encontrado.");
+  $itens = [];
+  while ($r = mysqli_fetch_assoc($res)) $itens[] = $r;
+  if (!$itens) throw new Exception("Empréstimo não encontrado.");
 
-  $id_livro = (int)$e['id_livro'];
-  $devolvido = (int)$e['devolvido'];
+  foreach ($itens as $item) {
+    if ((int)$item['devolvido'] === 1) continue;
 
-  $stmt = mysqli_prepare($conn, "DELETE FROM emprestimos WHERE id = ?");
-  mysqli_stmt_bind_param($stmt, "i", $id);
-  mysqli_stmt_execute($stmt);
-
-  // se estava aberto, devolve 1 exemplar
-  if ($devolvido === 0) {
+    $id_livro = (int)$item['id_livro'];
     $stmt = mysqli_prepare($conn, "
       UPDATE livros
-      SET qtd_disp = LEAST(qtd_disp + 1, qtd_total),
-          disponivel = IF(LEAST(qtd_disp + 1, qtd_total) > 0, 1, 0)
+      SET qtd_disp = LEAST(qtd_total, qtd_disp + 1),
+          disponivel = 1
       WHERE id = ?
     ");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
     mysqli_stmt_execute($stmt);
   }
+
+  // apaga cabeçalho: itens vão junto (ON DELETE CASCADE)
+  $stmt = mysqli_prepare($conn, "DELETE FROM emprestimos WHERE id = ?");
+  mysqli_stmt_bind_param($stmt, "i", $id);
+  mysqli_stmt_execute($stmt);
 
   mysqli_commit($conn);
   flash_set('success', 'Empréstimo excluído com sucesso!');

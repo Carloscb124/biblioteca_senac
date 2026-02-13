@@ -6,85 +6,106 @@ include("conexao.php");
 $hoje = date('Y-m-d');
 
 /* =========================================================
-   KPIs
+   KPIs (modelo novo: emprestimos + emprestimo_itens)
    ========================================================= */
 
 // Total de livros ativos no acervo (disponivel=1 = ativo)
-$livros_total = (int)mysqli_fetch_assoc(
+$livros_total = (int)(mysqli_fetch_assoc(
   mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros WHERE disponivel = 1")
-)['c'];
+)['c'] ?? 0);
 
 // Total de usuários leitores ativos
-$usuarios_total = (int)mysqli_fetch_assoc(
+$usuarios_total = (int)(mysqli_fetch_assoc(
   mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios WHERE ativo = 1 AND perfil = 'leitor'")
-)['c'];
+)['c'] ?? 0);
 
-// Empréstimos em aberto
-$em_emprestimo = (int)mysqli_fetch_assoc(
-  mysqli_query($conn, "SELECT COUNT(*) AS c FROM emprestimos WHERE devolvido = 0")
-)['c'];
-
-// Empréstimos atrasados (aberto + data prevista menor que hoje)
-$atrasados = (int)mysqli_fetch_assoc(mysqli_query(
-  $conn,
-  "SELECT COUNT(*) AS c
-   FROM emprestimos
-   WHERE devolvido = 0
-     AND data_prevista IS NOT NULL
-     AND data_prevista < CURDATE()"
-))['c'];
-
-/* =========================================================
-   Empréstimos recentes (só 3)
-   ========================================================= */
-$sql_recent = "
-SELECT
-  e.id,
-  e.data_prevista,
-  e.data_devolucao,
-  e.devolvido,
-  u.nome AS membro,
-  l.titulo AS livro
-FROM emprestimos e
-JOIN usuarios u ON u.id = e.id_usuario
-JOIN livros l ON l.id = e.id_livro
-ORDER BY e.id DESC
-LIMIT 3
+// Empréstimos em aberto: existe pelo menos 1 item não devolvido no empréstimo
+$sql_abertos = "
+  SELECT COUNT(*) AS c
+  FROM (
+    SELECT e.id
+    FROM emprestimos e
+    JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    GROUP BY e.id
+    HAVING SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0
+  ) t
 ";
-$recentes = mysqli_query($conn, $sql_recent);
+$em_emprestimo = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sql_abertos))['c'] ?? 0);
+
+// Empréstimos atrasados: tem item aberto E data_prevista < hoje
+// (data_prevista fica na tabela emprestimos, como seu print mostrou)
+$sql_atrasados = "
+  SELECT COUNT(*) AS c
+  FROM (
+    SELECT e.id
+    FROM emprestimos e
+    JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    WHERE e.data_prevista IS NOT NULL
+      AND e.data_prevista < CURDATE()
+    GROUP BY e.id
+    HAVING SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0
+  ) t
+";
+$atrasados = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sql_atrasados))['c'] ?? 0);
 
 /* =========================================================
-   ✅ AJAX do histórico (IMPORTANTE)
-   Esse bloco tem que rodar ANTES do header/footer.
-   Se o header entrar aqui, o fetch recebe a página inteira
-   (navbar, layout, etc) e isso quebra o <tbody>.
+   Empréstimos recentes (só 3) - modelo novo
+   ========================================================= */
+function buscarRecentes(mysqli $conn) {
+  $sql = "
+    SELECT
+      e.id,
+      e.data_prevista,
+      u.nome AS membro,
+
+      COUNT(ei.id) AS qtd_itens,
+      SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos,
+      MAX(ei.data_devolucao) AS ultima_devolucao,
+
+      GROUP_CONCAT(DISTINCT l.titulo ORDER BY l.titulo SEPARATOR ' | ') AS livros_titulos
+    FROM emprestimos e
+    JOIN usuarios u ON u.id = e.id_usuario
+    JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    JOIN livros l ON l.id = ei.id_livro
+    GROUP BY e.id
+    ORDER BY e.id DESC
+    LIMIT 3
+  ";
+  return mysqli_query($conn, $sql);
+}
+
+$recentes = buscarRecentes($conn);
+
+/* =========================================================
+   AJAX do histórico: retorna SOMENTE <tr> (igual seu design)
    ========================================================= */
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'recentes') {
   header("Content-Type: text/html; charset=UTF-8");
 
-  if ($recentes && mysqli_num_rows($recentes) > 0) {
-    while ($e = mysqli_fetch_assoc($recentes)) {
-      $devolvido = (int)$e['devolvido'];
-      $prevista  = $e['data_prevista'] ?? null;
+  $recentesAjax = buscarRecentes($conn);
 
-      // Atrasado = ainda não devolvido + data prevista < hoje
-      $atrasado  = ($devolvido === 0 && !empty($prevista) && $prevista < $hoje);
+  if ($recentesAjax && mysqli_num_rows($recentesAjax) > 0) {
+    while ($e = mysqli_fetch_assoc($recentesAjax)) {
+      $abertos  = (int)($e['abertos'] ?? 0);
+      $qtd      = (int)($e['qtd_itens'] ?? 0);
+      $prevista = $e['data_prevista'] ?? null;
 
-      // Retorna SOMENTE as linhas <tr> para o tbody
+      $devolvido = ($abertos === 0);
+      $atrasado  = (!$devolvido && !empty($prevista) && $prevista < $hoje);
+
+      $livroTxt = ($qtd > 1) ? ($qtd . " livros") : ($e['livros_titulos'] ?? '—');
+
       echo "<tr>";
-      echo "<td class='fw-semibold'>" . htmlspecialchars($e['livro']) . "</td>";
+      echo "<td class='fw-semibold'>" . htmlspecialchars($livroTxt) . "</td>";
       echo "<td>" . htmlspecialchars($e['membro']) . "</td>";
 
       echo "<td class='text-muted'>";
-      if ($devolvido === 1) {
-        echo htmlspecialchars($e['data_devolucao'] ?? '-');
-      } else {
-        echo htmlspecialchars($e['data_prevista'] ?? '-');
-      }
+      if ($devolvido) echo htmlspecialchars($e['ultima_devolucao'] ?? '-');
+      else echo htmlspecialchars($prevista ?? '-');
       echo "</td>";
 
       echo "<td>";
-      if ($devolvido === 1) echo "<span class='badge-status badge-done'>Devolvido</span>";
+      if ($devolvido) echo "<span class='badge-status badge-done'>Devolvido</span>";
       elseif ($atrasado) echo "<span class='badge-status badge-late'>Atrasado</span>";
       else echo "<span class='badge-status badge-open'>Aberto</span>";
       echo "</td>";
@@ -92,7 +113,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'recentes') {
       echo "</tr>";
     }
   } else {
-    // Caso não exista nada, retorna só 1 linha
     echo "<tr>
             <td colspan='4' class='text-center text-muted py-4'>
               Nenhum empréstimo registrado
@@ -100,10 +120,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'recentes') {
           </tr>";
   }
 
-  // ✅ Para aqui, não renderiza o resto da página
   exit;
 }
-
 
 include("includes/header.php");
 ?>
@@ -181,25 +199,28 @@ include("includes/header.php");
           <tbody id="tbodyRecentes">
             <?php if ($recentes && mysqli_num_rows($recentes) > 0) { ?>
               <?php while ($e = mysqli_fetch_assoc($recentes)) {
+                $abertos  = (int)($e['abertos'] ?? 0);
+                $qtd      = (int)($e['qtd_itens'] ?? 0);
+                $prevista = $e['data_prevista'] ?? null;
 
-                $devolvido = (int)$e['devolvido'];
-                $prevista  = $e['data_prevista'] ?? null;
-                $atrasado  = ($devolvido === 0 && !empty($prevista) && $prevista < $hoje);
+                $devolvido = ($abertos === 0);
+                $atrasado  = (!$devolvido && !empty($prevista) && $prevista < $hoje);
 
+                $livroTxt = ($qtd > 1) ? ($qtd . " livros") : ($e['livros_titulos'] ?? '—');
               ?>
                 <tr>
-                  <td class="fw-semibold"><?= htmlspecialchars($e['livro']) ?></td>
+                  <td class="fw-semibold"><?= htmlspecialchars($livroTxt) ?></td>
                   <td><?= htmlspecialchars($e['membro']) ?></td>
 
                   <td class="text-muted">
                     <?php
-                      if ($devolvido === 1) echo htmlspecialchars($e['data_devolucao'] ?? '-');
-                      else echo htmlspecialchars($e['data_prevista'] ?? '-');
+                      if ($devolvido) echo htmlspecialchars($e['ultima_devolucao'] ?? '-');
+                      else echo htmlspecialchars($prevista ?? '-');
                     ?>
                   </td>
 
                   <td>
-                    <?php if ($devolvido === 1) { ?>
+                    <?php if ($devolvido) { ?>
                       <span class="badge-status badge-done">Devolvido</span>
                     <?php } elseif ($atrasado) { ?>
                       <span class="badge-status badge-late">Atrasado</span>
@@ -255,7 +276,6 @@ include("includes/header.php");
 
 <script>
   // Atualiza só o histórico (sem reload da página)
-  // Busca SOMENTE os <tr> porque o PHP do ajax=recentes sai antes do header
   const tbody = document.getElementById('tbodyRecentes');
 
   async function refreshRecentes(){
@@ -269,16 +289,14 @@ include("includes/header.php");
 
       const html = await resp.text();
 
-      // Só atualiza se vier conteúdo válido
       if(html && html.trim().length){
         tbody.innerHTML = html;
       }
     }catch(e){
-      // se falhar, ignora
+      // falhou? deixa quieto, a vida segue
     }
   }
 
-  // Atualiza periodicamente
   setInterval(refreshRecentes, 15000);
 </script>
 

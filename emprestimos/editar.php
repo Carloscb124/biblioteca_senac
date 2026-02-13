@@ -1,30 +1,42 @@
 <?php
-$titulo_pagina = "Editar Empréstimo";
+$titulo_pagina = "Cancelar Empréstimo";
+include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
-
+$hoje = date('Y-m-d');
 $id = (int)($_GET['id'] ?? 0);
+
 if ($id <= 0) {
   flash_set('danger', 'Empréstimo inválido.');
   header("Location: listar.php");
   exit;
 }
 
+// ===============================
+// Carrega empréstimo + usuário + totais
+// ===============================
 $stmt = mysqli_prepare($conn, "
   SELECT
-    e.*,
-    u.nome AS usuario_nome, u.cpf AS usuario_cpf, u.email AS usuario_email, u.telefone AS usuario_tel,
-    l.titulo AS livro_titulo, l.autor AS livro_autor, l.ISBN AS livro_isbn, l.qtd_disp AS livro_disp, l.qtd_total AS livro_tot
+    e.id,
+    e.data_emprestimo,
+    e.data_prevista,
+    IFNULL(e.cancelado,0) AS cancelado,
+    e.cancelado_em,
+    e.cancelado_motivo,
+    u.nome AS usuario_nome,
+    COUNT(ei.id) AS qtd_itens,
+    SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos
   FROM emprestimos e
   JOIN usuarios u ON u.id = e.id_usuario
-  JOIN livros l ON l.id = e.id_livro
+  JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
   WHERE e.id = ?
+  GROUP BY e.id
+  LIMIT 1
 ");
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
-$res = mysqli_stmt_get_result($stmt);
-$e = mysqli_fetch_assoc($res);
+$e = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
 if (!$e) {
   flash_set('danger', 'Empréstimo não encontrado.');
@@ -32,33 +44,73 @@ if (!$e) {
   exit;
 }
 
-if ((int)$e['devolvido'] === 1) {
-  flash_set('warning', 'Empréstimo devolvido não pode ser editado.');
-  header("Location: listar.php");
-  exit;
+$cancelado = ((int)($e['cancelado'] ?? 0) === 1);
+$abertos = (int)($e['abertos'] ?? 0);
+$devolvido = (!$cancelado && $abertos === 0);
+
+// ===============================
+// POST: cancelar
+// ===============================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if ($cancelado) {
+    flash_set('warning', 'Este empréstimo já está cancelado.');
+    header("Location: listar.php");
+    exit;
+  }
+  if ($devolvido) {
+    flash_set('warning', 'Este empréstimo já foi devolvido. Não faz sentido cancelar agora.');
+    header("Location: listar.php");
+    exit;
+  }
+
+  $motivo = trim($_POST['motivo'] ?? '');
+  if (mb_strlen($motivo) > 255) $motivo = mb_substr($motivo, 0, 255);
+
+  mysqli_begin_transaction($conn);
+
+  try {
+    // marca o empréstimo como cancelado
+    $stmtC = mysqli_prepare($conn, "
+      UPDATE emprestimos
+      SET cancelado = 1,
+          cancelado_em = NOW(),
+          cancelado_motivo = ?
+      WHERE id = ?
+      LIMIT 1
+    ");
+    mysqli_stmt_bind_param($stmtC, "si", $motivo, $id);
+    mysqli_stmt_execute($stmtC);
+
+    // fecha os itens que ainda estavam em aberto
+    $stmtI = mysqli_prepare($conn, "
+      UPDATE emprestimo_itens
+      SET devolvido = 1,
+          data_devolucao = ?
+      WHERE emprestimo_id = ?
+        AND devolvido = 0
+    ");
+    mysqli_stmt_bind_param($stmtI, "si", $hoje, $id);
+    mysqli_stmt_execute($stmtI);
+
+    mysqli_commit($conn);
+
+    flash_set('success', 'Empréstimo cancelado com sucesso.');
+    header("Location: listar.php");
+    exit;
+
+  } catch (Throwable $ex) {
+    mysqli_rollback($conn);
+    flash_set('danger', 'Erro ao cancelar o empréstimo.');
+    header("Location: listar.php");
+    exit;
+  }
 }
-
-$hoje = date('Y-m-d');
-
-$cont = [];
-if (!empty($e['usuario_email'])) $cont[] = $e['usuario_email'];
-if (!empty($e['usuario_tel'])) $cont[] = $e['usuario_tel'];
-$contTxt = $cont ? implode(" | ", $cont) : "Sem contato";
-
-$textoLeitor = $e['usuario_nome'] . " (CPF: " . ($e['usuario_cpf'] ?? '') . ") • " . $contTxt;
-
-$extra = [];
-if (!empty($e['livro_autor'])) $extra[] = "Autor: " . $e['livro_autor'];
-if (!empty($e['livro_isbn'])) $extra[] = "ISBN: " . $e['livro_isbn'];
-$extraTxt = $extra ? " • " . implode(" | ", $extra) : "";
-
-$textoLivro = $e['livro_titulo'] . $extraTxt . " (" . (int)$e['livro_disp'] . "/" . (int)$e['livro_tot'] . " disponíveis)";
 ?>
 
 <div class="container my-4">
   <div class="page-card">
     <div class="page-card__head">
-      <h2 class="page-card__title m-0">Editar Empréstimo</h2>
+      <h2 class="page-card__title">Cancelar Empréstimo #<?= (int)$e['id'] ?></h2>
 
       <a class="btn btn-pill" href="listar.php">
         <i class="bi bi-arrow-left"></i>
@@ -66,108 +118,75 @@ $textoLivro = $e['livro_titulo'] . $extraTxt . " (" . (int)$e['livro_disp'] . "/
       </a>
     </div>
 
-    <form action="atualizar.php" method="post" class="form-grid" autocomplete="off">
-      <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
-      <input type="hidden" name="id_livro_atual" value="<?= (int)$e['id_livro'] ?>">
+    <div class="card border-0 shadow-sm" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <div class="text-muted small">Usuário</div>
+            <div class="fw-semibold"><?= htmlspecialchars($e['usuario_nome'] ?? '-') ?></div>
 
-      <div class="row g-3">
+            <div class="mt-3 row g-2">
+              <div class="col-6">
+                <div class="text-muted small">Empréstimo</div>
+                <div><?= htmlspecialchars($e['data_emprestimo'] ?? '-') ?></div>
+              </div>
+              <div class="col-6">
+                <div class="text-muted small">Prevista</div>
+                <div><?= htmlspecialchars($e['data_prevista'] ?? '-') ?></div>
+              </div>
+            </div>
 
-        <!-- LEITOR -->
-        <div class="col-md-6 position-relative">
-          <label class="form-label">Leitor</label>
-          <input type="text" class="form-control" id="leitorBusca"
-                 placeholder="Digite nome, CPF, email ou telefone..." autocomplete="off"
-                 value="<?= htmlspecialchars($textoLeitor) ?>" required>
-          <input type="hidden" name="id_usuario" id="id_usuario" value="<?= (int)$e['id_usuario'] ?>" required>
-          <div id="leitorSugestoes" class="list-group position-absolute w-100" style="z-index:1050;"></div>
-          <div class="form-text">Se trocar o texto, clique numa sugestão pra validar.</div>
-        </div>
+            <div class="mt-3 text-muted small">
+              Itens: <b><?= (int)($e['qtd_itens'] ?? 0) ?></b> |
+              Em aberto: <b><?= (int)$abertos ?></b>
+            </div>
+          </div>
 
-        <!-- LIVRO -->
-        <div class="col-md-6 position-relative">
-          <label class="form-label">Livro</label>
-          <input type="text" class="form-control" id="livroBusca"
-                 placeholder="Digite título, autor ou ISBN..." autocomplete="off"
-                 value="<?= htmlspecialchars($textoLivro) ?>" required>
-          <input type="hidden" name="id_livro" id="id_livro" value="<?= (int)$e['id_livro'] ?>" required>
-          <div id="livroSugestoes" class="list-group position-absolute w-100" style="z-index:1050;"></div>
-          <div class="form-text">O livro atual já está selecionado. Se trocar, clique numa sugestão.</div>
-        </div>
+          <div class="col-lg-6">
+            <?php if ($cancelado) { ?>
+              <div class="alert alert-warning" style="border-radius:16px;">
+                <div class="fw-semibold mb-1"><i class="bi bi-x-circle me-1"></i> Já está cancelado</div>
+                <div class="small text-muted">
+                  <?= htmlspecialchars($e['cancelado_em'] ?? '-') ?>
+                  <?php if (!empty($e['cancelado_motivo'] ?? '')) { ?>
+                    | <?= htmlspecialchars($e['cancelado_motivo']) ?>
+                  <?php } ?>
+                </div>
+              </div>
+            <?php } elseif ($devolvido) { ?>
+              <div class="alert alert-success" style="border-radius:16px;">
+                <div class="fw-semibold mb-1"><i class="bi bi-check-circle me-1"></i> Já foi devolvido</div>
+                <div class="small text-muted">Esse empréstimo está encerrado. Cancelar aqui não ajuda muito.</div>
+              </div>
+            <?php } else { ?>
+              <div class="alert alert-warning" style="border-radius:16px;">
+                <div class="fw-semibold mb-1">Atenção</div>
+                <div class="small text-muted">
+                  Cancelar serve pra quando o empréstimo foi lançado errado.
+                  Isso vai encerrar os itens que ainda estavam em aberto.
+                </div>
+              </div>
 
-        <div class="col-md-4">
-          <label class="form-label">Data do empréstimo</label>
-          <input class="form-control" type="date" name="data_emprestimo"
-                 value="<?= htmlspecialchars($e['data_emprestimo'] ?? $hoje) ?>" required>
-        </div>
+              <form method="POST">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Motivo (opcional)</label>
+                  <input type="text" name="motivo" class="form-control" maxlength="255"
+                         placeholder="Ex: lançado no usuário errado, livro errado..."
+                         value="<?= htmlspecialchars($_POST['motivo'] ?? '') ?>">
+                </div>
 
-        <div class="col-md-4">
-          <label class="form-label">Data prevista (opcional)</label>
-          <input class="form-control" type="date" name="data_prevista"
-                 value="<?= htmlspecialchars($e['data_prevista'] ?? '') ?>">
-        </div>
-
-        <div class="col-12">
-          <button class="btn btn-pill" type="submit">
-            <i class="bi bi-check2"></i>
-            Salvar alterações
-          </button>
+                <button class="btn btn-warning w-100" style="border-radius:999px;"
+                        onclick="return confirm('Confirmar o cancelamento deste empréstimo?');">
+                  <i class="bi bi-x-circle me-1"></i> Cancelar empréstimo
+                </button>
+              </form>
+            <?php } ?>
+          </div>
         </div>
       </div>
-    </form>
+    </div>
+
   </div>
 </div>
-
-<script>
-  function setupBusca({ inputId, listId, hiddenId, url }) {
-    const input = document.getElementById(inputId);
-    const list = document.getElementById(listId);
-    const hidden = document.getElementById(hiddenId);
-    let timer = null;
-
-    function limpar() { list.innerHTML = ""; }
-
-    input.addEventListener("input", () => {
-      clearTimeout(timer);
-      hidden.value = ""; // invalida seleção ao digitar
-      const q = input.value.trim();
-      if (q.length < 2) { limpar(); return; }
-
-      timer = setTimeout(() => {
-        fetch(url + "?q=" + encodeURIComponent(q))
-          .then(r => r.text())
-          .then(html => list.innerHTML = html)
-          .catch(() => limpar());
-      }, 200);
-    });
-
-    list.addEventListener("click", (e) => {
-      const item = e.target.closest("[data-id]");
-      if (!item) return;
-
-      input.value = item.dataset.text;
-      hidden.value = item.dataset.id;
-      limpar();
-    });
-
-    document.addEventListener("click", (e) => {
-      if (e.target === input || list.contains(e.target)) return;
-      limpar();
-    });
-  }
-
-  setupBusca({
-    inputId: "leitorBusca",
-    listId: "leitorSugestoes",
-    hiddenId: "id_usuario",
-    url: "buscar_leitores.php"
-  });
-
-  setupBusca({
-    inputId: "livroBusca",
-    listId: "livroSugestoes",
-    hiddenId: "id_livro",
-    url: "buscar_livros.php"
-  });
-</script>
 
 <?php include("../includes/footer.php"); ?>

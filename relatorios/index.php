@@ -4,16 +4,37 @@ include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
+// ===== Livros / usuários (igual) =====
 $livros_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros"))['c'];
 $livros_disp  = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM livros WHERE disponivel = 1"))['c'];
 $usuarios_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios"))['c'];
-$emprestimos_ativos = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM emprestimos WHERE devolvido = 0"))['c'];
+
+// ===== MODELO NOVO: emprestimos + emprestimo_itens =====
+
+// Empréstimos Ativos = tem pelo menos 1 item não devolvido
+$emprestimos_ativos = (int)mysqli_fetch_assoc(mysqli_query($conn, "
+  SELECT COUNT(*) AS c
+  FROM (
+    SELECT e.id
+    FROM emprestimos e
+    JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    GROUP BY e.id
+    HAVING SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0
+  ) t
+"))['c'];
+
+// Atrasados = tem item não devolvido + data_prevista < hoje
 $atrasados = (int)mysqli_fetch_assoc(mysqli_query($conn, "
   SELECT COUNT(*) AS c
-  FROM emprestimos
-  WHERE devolvido = 0
-    AND data_prevista IS NOT NULL
-    AND data_prevista < CURDATE()
+  FROM (
+    SELECT e.id
+    FROM emprestimos e
+    JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    WHERE e.data_prevista IS NOT NULL
+      AND e.data_prevista < CURDATE()
+    GROUP BY e.id
+    HAVING SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0
+  ) t
 "))['c'];
 ?>
 
@@ -104,8 +125,6 @@ $atrasados = (int)mysqli_fetch_assoc(mysqli_query($conn, "
     </a>
 
   </div>
-
-
 
 </div>
 

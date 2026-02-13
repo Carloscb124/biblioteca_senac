@@ -1,5 +1,6 @@
 <?php
 $titulo_pagina = "Empréstimos por período";
+include("../auth/auth_guard.php");
 include("../conexao.php");
 include("../includes/header.php");
 
@@ -10,27 +11,35 @@ $fim    = $_GET['fim'] ?? $hoje;
 
 function h($s){ return htmlspecialchars($s ?? ''); }
 
-// Resumo do período
+// KPIs do período (contando emprestimos, status pelos itens)
 $stmt = mysqli_prepare($conn, "
   SELECT
     COUNT(*) AS total,
-    SUM(CASE WHEN devolvido=1 THEN 1 ELSE 0 END) AS devolvidos,
-    SUM(CASE WHEN devolvido=0 THEN 1 ELSE 0 END) AS abertos,
-    SUM(CASE WHEN devolvido=0 AND data_prevista IS NOT NULL AND data_prevista < CURDATE() THEN 1 ELSE 0 END) AS atrasados
-  FROM emprestimos
-  WHERE data_emprestimo BETWEEN ? AND ?
+    SUM(CASE WHEN t.abertos = 0 THEN 1 ELSE 0 END) AS devolvidos,
+    SUM(CASE WHEN t.abertos > 0 THEN 1 ELSE 0 END) AS abertos,
+    SUM(CASE WHEN t.abertos > 0 AND t.data_prevista IS NOT NULL AND t.data_prevista < CURDATE() THEN 1 ELSE 0 END) AS atrasados
+  FROM (
+    SELECT
+      e.id,
+      e.data_prevista,
+      SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos
+    FROM emprestimos e
+    JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    WHERE e.data_emprestimo BETWEEN ? AND ?
+    GROUP BY e.id
+  ) t
 ");
 mysqli_stmt_bind_param($stmt, "ss", $inicio, $fim);
 mysqli_stmt_execute($stmt);
 $kpi = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: ['total'=>0,'devolvidos'=>0,'abertos'=>0,'atrasados'=>0];
 
-// Dados pro gráfico (por dia)
+// gráfico por dia (quantos emprestimos criados por dia)
 $stmt = mysqli_prepare($conn, "
-  SELECT data_emprestimo AS dia, COUNT(*) AS qtd
-  FROM emprestimos
-  WHERE data_emprestimo BETWEEN ? AND ?
-  GROUP BY data_emprestimo
-  ORDER BY data_emprestimo ASC
+  SELECT e.data_emprestimo AS dia, COUNT(*) AS qtd
+  FROM emprestimos e
+  WHERE e.data_emprestimo BETWEEN ? AND ?
+  GROUP BY e.data_emprestimo
+  ORDER BY e.data_emprestimo ASC
 ");
 mysqli_stmt_bind_param($stmt, "ss", $inicio, $fim);
 mysqli_stmt_execute($stmt);
@@ -43,19 +52,22 @@ while ($row = mysqli_fetch_assoc($resGraf)) {
   $values[] = (int)$row['qtd'];
 }
 
-// Lista detalhada
+// Lista detalhada (1 linha por emprestimo)
 $stmt = mysqli_prepare($conn, "
   SELECT
-    l.titulo,
+    e.id,
     u.nome AS usuario,
     e.data_emprestimo,
     e.data_prevista,
-    e.data_devolucao,
-    e.devolvido
+    COUNT(ei.id) AS qtd_itens,
+    SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos,
+    GROUP_CONCAT(DISTINCT l.titulo ORDER BY l.titulo SEPARATOR ' | ') AS livros_titulos
   FROM emprestimos e
-  JOIN livros l ON l.id = e.id_livro
   JOIN usuarios u ON u.id = e.id_usuario
+  JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+  JOIN livros l ON l.id = ei.id_livro
   WHERE e.data_emprestimo BETWEEN ? AND ?
+  GROUP BY e.id
   ORDER BY e.data_emprestimo DESC
 ");
 mysqli_stmt_bind_param($stmt, "ss", $inicio, $fim);
@@ -63,7 +75,6 @@ mysqli_stmt_execute($stmt);
 $lista = mysqli_stmt_get_result($stmt);
 
 // Atalhos rápidos
-$hoje = date('Y-m-d');
 $inicio7 = date('Y-m-d', strtotime('-7 days'));
 $inicio30 = date('Y-m-d', strtotime('-30 days'));
 $mesAtualIni = date('Y-m-01');
@@ -80,7 +91,6 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
       <a class="btn btn-pill" href="index.php"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
 
-    <!-- Atalhos -->
     <div class="report-shortcuts">
       <a class="chip" href="?inicio=<?= $inicio7 ?>&fim=<?= $hoje ?>">Últimos 7 dias</a>
       <a class="chip" href="?inicio=<?= $inicio30 ?>&fim=<?= $hoje ?>">Últimos 30 dias</a>
@@ -88,7 +98,6 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
       <a class="chip" href="?inicio=<?= $mesPassadoIni ?>&fim=<?= $mesPassadoFim ?>">Mês passado</a>
     </div>
 
-    <!-- Filtro -->
     <form class="row g-3 mt-1">
       <div class="col-md-4">
         <label class="form-label">Data inicial</label>
@@ -99,11 +108,10 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
         <input type="date" name="fim" class="form-control" value="<?= h($fim) ?>" required>
       </div>
       <div class="col-md-4 align-self-end">
-        <button class="btn btn-brand" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+        <button class="btn btn-pill" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
       </div>
     </form>
 
-    <!-- KPIs -->
     <div class="report-kpis mt-4">
       <div class="report-card">
         <div class="report-card__top"><i class="bi bi-list-check"></i><span>Total</span></div>
@@ -130,7 +138,6 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
       </div>
     </div>
 
-    <!-- Gráfico -->
     <div class="report-chart mt-4">
       <div class="report-chart__head">
         <strong>Empréstimos por dia</strong>
@@ -139,7 +146,6 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
       <canvas id="chartEmprestimos" height="90"></canvas>
     </div>
 
-    <!-- Tabela -->
     <div class="mt-4 table-base-wrap">
       <div class="table-responsive">
         <table class="table table-base align-middle mb-0">
@@ -156,17 +162,22 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
             <?php
               $hoje2 = date('Y-m-d');
               while ($r = mysqli_fetch_assoc($lista)) {
-                $devolvido = (int)$r['devolvido'];
+                $abertos = (int)$r['abertos'];
+                $qtd = (int)$r['qtd_itens'];
                 $prev = $r['data_prevista'] ?? null;
-                $atrasado = ($devolvido === 0 && !empty($prev) && $prev < $hoje2);
+
+                $devolvido = ($abertos === 0);
+                $atrasado = (!$devolvido && !empty($prev) && $prev < $hoje2);
+
+                $livroTxt = ($qtd > 1) ? ($qtd . " livros") : ($r['livros_titulos'] ?? '—');
             ?>
               <tr>
-                <td class="fw-semibold"><?= h($r['titulo']) ?></td>
+                <td class="fw-semibold"><?= h($livroTxt) ?></td>
                 <td><?= h($r['usuario']) ?></td>
                 <td><?= h($r['data_emprestimo']) ?></td>
                 <td><?= h($r['data_prevista'] ?? '-') ?></td>
                 <td>
-                  <?php if ($devolvido === 1) { ?>
+                  <?php if ($devolvido) { ?>
                     <span class="badge-status badge-done">Devolvido</span>
                   <?php } elseif ($atrasado) { ?>
                     <span class="badge-status badge-late">Atrasado</span>
@@ -176,6 +187,9 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
                 </td>
               </tr>
             <?php } ?>
+            <?php if ((int)$kpi['total'] === 0) { ?>
+              <tr><td colspan="5" class="text-muted">Nenhum empréstimo no período.</td></tr>
+            <?php } ?>
           </tbody>
         </table>
       </div>
@@ -184,29 +198,15 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
   </div>
 </div>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
   const labels = <?= json_encode($labels) ?>;
   const values = <?= json_encode($values) ?>;
 
-  const ctx = document.getElementById('chartEmprestimos');
-  new Chart(ctx, {
+  new Chart(document.getElementById('chartEmprestimos'), {
     type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Empréstimos',
-        data: values,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
+    data: { labels, datasets: [{ label: 'Empréstimos', data: values }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
   });
 </script>
 
