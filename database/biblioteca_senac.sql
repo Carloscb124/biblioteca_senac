@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 13/02/2026 às 15:53
+-- Tempo de geração: 18/02/2026 às 15:43
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -4386,7 +4386,22 @@ INSERT INTO `emprestimos` (`id`, `id_usuario`, `data_emprestimo`, `data_prevista
 (3, 5, '2026-02-03', '2026-02-04', 0, NULL, NULL),
 (4, 1, '2026-02-13', '2026-02-20', 0, NULL, NULL),
 (5, 23, '2026-02-13', '2026-02-20', 0, NULL, NULL),
-(6, 5, '2026-02-13', '2026-02-20', 1, '2026-02-13 11:48:10', '');
+(6, 5, '2026-02-13', '2026-02-20', 1, '2026-02-13 11:48:10', ''),
+(8, 23, '2026-02-15', '2026-02-22', 0, NULL, NULL),
+(10, 20, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(11, 20, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(12, 16, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(13, 1, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(14, 18, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(15, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(16, 1, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(17, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(19, 1, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(21, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(22, 20, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(24, 23, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(26, 23, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(28, 23, '2026-02-17', '2026-02-24', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -4400,22 +4415,41 @@ CREATE TABLE `emprestimo_itens` (
   `id_livro` int(11) NOT NULL,
   `data_devolucao` date DEFAULT NULL,
   `devolvido` tinyint(1) NOT NULL DEFAULT 0,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  `perdido` tinyint(1) NOT NULL DEFAULT 0,
+  `data_perdido` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Despejando dados para a tabela `emprestimo_itens`
 --
 
-INSERT INTO `emprestimo_itens` (`id`, `emprestimo_id`, `id_livro`, `data_devolucao`, `devolvido`, `criado_em`) VALUES
-(2, 2, 20, '2026-02-13', 1, '2026-02-13 11:55:47'),
-(3, 2, 16, '2026-02-05', 1, '2026-02-03 11:55:47'),
-(4, 3, 20, '2026-02-13', 1, '2026-02-13 12:32:06'),
-(5, 3, 16, '2026-02-13', 1, '2026-02-13 12:32:06'),
-(6, 4, 20, '2026-02-13', 1, '2026-02-13 12:33:11'),
-(7, 5, 24, '2026-02-13', 1, '2026-02-13 13:13:03'),
-(8, 6, 20, '2026-02-13', 1, '2026-02-13 14:47:59'),
-(9, 6, 16, '2026-02-13', 1, '2026-02-13 14:47:59');
+INSERT INTO `emprestimo_itens` (`id`, `emprestimo_id`, `id_livro`, `data_devolucao`, `devolvido`, `criado_em`, `perdido`, `data_perdido`) VALUES
+(2, 2, 20, '2026-02-13', 1, '2026-02-13 11:55:47', 0, NULL),
+(3, 2, 16, '2026-02-05', 1, '2026-02-03 11:55:47', 0, NULL),
+(4, 3, 20, '2026-02-13', 1, '2026-02-13 12:32:06', 0, NULL),
+(5, 3, 16, '2026-02-13', 1, '2026-02-13 12:32:06', 0, NULL),
+(6, 4, 20, '2026-02-13', 1, '2026-02-13 12:33:11', 0, NULL),
+(7, 5, 24, '2026-02-13', 1, '2026-02-13 13:13:03', 0, NULL),
+(8, 6, 20, '2026-02-13', 1, '2026-02-13 14:47:59', 0, NULL),
+(9, 6, 16, '2026-02-13', 1, '2026-02-13 14:47:59', 0, NULL),
+(11, 8, 20, '2026-02-15', 1, '2026-02-15 20:42:39', 0, NULL),
+(13, 10, 16, '2026-02-17', 1, '2026-02-17 12:53:01', 0, NULL),
+(14, 11, 16, NULL, 0, '2026-02-17 12:55:11', 1, '2026-02-17'),
+(15, 12, 24, NULL, 0, '2026-02-17 12:56:54', 1, '2026-02-17'),
+(16, 13, 20, NULL, 0, '2026-02-17 13:23:28', 1, '2026-02-17'),
+(17, 14, 15, NULL, 0, '2026-02-17 13:35:29', 1, '2026-02-17'),
+(18, 15, 24, '2026-02-17', 1, '2026-02-17 13:42:03', 1, '2026-02-17'),
+(19, 16, 24, '2026-02-17', 1, '2026-02-17 13:42:51', 1, '2026-02-17'),
+(20, 17, 24, '2026-02-17', 1, '2026-02-17 13:43:03', 0, NULL),
+(22, 19, 20, '2026-02-17', 1, '2026-02-17 13:45:02', 0, NULL),
+(24, 21, 20, NULL, 0, '2026-02-17 14:20:12', 0, NULL),
+(25, 22, 16, '2026-02-17', 1, '2026-02-17 14:20:28', 1, '2026-02-17'),
+(27, 24, 20, '2026-02-17', 1, '2026-02-17 14:21:17', 0, NULL),
+(28, 24, 16, '2026-02-17', 1, '2026-02-17 14:21:17', 0, NULL),
+(30, 26, 16, '2026-02-17', 1, '2026-02-17 14:26:33', 0, NULL),
+(31, 26, 15, '2026-02-17', 1, '2026-02-17 14:26:33', 1, '2026-02-17'),
+(33, 28, 25, '2026-02-17', 1, '2026-02-17 14:27:41', 1, '2026-02-17');
 
 -- --------------------------------------------------------
 
@@ -4430,16 +4464,17 @@ CREATE TABLE `funcionarios` (
   `senha` varchar(255) NOT NULL,
   `cargo` enum('admin','funcionario') NOT NULL DEFAULT 'funcionario',
   `ativo` tinyint(1) NOT NULL DEFAULT 1,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  `cpf` varchar(11) DEFAULT NULL,
+  `telefone` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Despejando dados para a tabela `funcionarios`
 --
 
-INSERT INTO `funcionarios` (`id`, `nome`, `email`, `senha`, `cargo`, `ativo`, `criado_em`) VALUES
-(4, 'Carlos', 'cb473355@gmail.com', '$2y$10$Og/w8lHACdu85hxgsQ7oVOE5qA0UpJdosHGcDiKy7IX.ZzECOCFjq', 'admin', 1, '2026-02-12 13:46:40'),
-(5, 'carlos', 'teste@gmail.com', '$2y$10$eHnOMVMVB0/wyQ6/xyF.puVIdf4IQCvFN02DIJQfi1tJy2KRv0BgW', '', 1, '2026-02-12 13:48:00');
+INSERT INTO `funcionarios` (`id`, `nome`, `email`, `senha`, `cargo`, `ativo`, `criado_em`, `cpf`, `telefone`) VALUES
+(7, 'Carlos', 'cb473355@gmail.com', '$2y$10$OdKb.W5eSZboKsyvcNDnW.vQnQS.yxQ2ZFVDw4dE.m2a0yNJV14N.', 'admin', 1, '2026-02-17 15:44:49', '47750673890', NULL);
 
 -- --------------------------------------------------------
 
@@ -4483,17 +4518,17 @@ INSERT INTO `livros` (`id`, `titulo`, `autor`, `ano_publicacao`, `disponivel`, `
 (12, 'Empreendedorismo', 'Robert A. Baron, Scott A. Shane', 2007, 1, '2026-02-12 14:54:37', '9788522105335', 'https://covers.openlibrary.org/b/isbn/9788522105335-L.jpg', 2, 2, 0, 'Este livro apresenta uma visão única do empreendedorismo, ou seja, aquela do ponto de vista do processo, apresentando-o em suas diversas fases distintas. A obra trata o empreendedorismo como um processo contínuo e esse modelo é seguido de maneira consistente em todo o texto, fornecendo aos estudantes um modelo claro a seguir e fácil de compreender. Acessível e rico em exemplos, o texto une conceitos, teoria e pesquisa.', '', ''),
 (13, 'Livro sem Título', 'Djalma de Pinho Rebouças de Oliveira', 2026, 1, '2026-02-12 14:54:38', '9788597000696', 'https://covers.openlibrary.org/b/isbn/9788597000696-L.jpg', 2, 2, 0, '', '', ''),
 (14, 'Livro sem Título', 'Editora Manole', 2026, 1, '2026-02-12 14:54:40', '9788597026801', 'https://covers.openlibrary.org/b/isbn/9788597026801-L.jpg', 2, 2, 0, '', '', ''),
-(15, 'DIARIO DE UM BANANA, V.10 - BONS TEMPOS', 'JEFF KINNEY, ALEXANDRE BOIDE', 2015, 1, '2026-02-12 14:54:42', '9788576839422', 'https://covers.openlibrary.org/b/isbn/9788576839422-L.jpg', 3, 3, 0, 'script type=\"text/javascript\" function writeStandout(d){document.getElementById(\"standoutDiv\").innerHTML = \'iframe width=\"\'+((window.screen.width=960)?960:window.screen.width)+\'\" height=\"\'+parseInt(d.productHeight)+\'\" src=\"//www.standout.com.br/exclusivocultura/p/oroMjbxuLBI,/livro/diario-de-um-banana-10-bons-tempos\" frameborder=\"0\" allowfullscreen/iframe\';} if (window.jQuery){jQuery(document).ready(function(){jQuery.ajax({url:\"//www.standout.com.br/exclusivocultura/s/livro/diario-de-um-banana-10-bons-tempos\",dataType:\"jsonp\",crossDomain:true,jsonp:false,jsonpCallback:\"writeStandout\",timeout: 2000}).error(function(){writeStandout({productHeight: 2768});});});} else setTimeout(function () { writeStandout({productHeight: 2768}); }, 200); /script div id=\"standoutDiv\"/div', '', ''),
-(16, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-02-12 14:54:44', '9788502064355', 'https://covers.openlibrary.org/b/isbn/9788502064355-L.jpg', 3, 2, 0, '', '', 'Saraiva'),
+(15, 'DIARIO DE UM BANANA, V.10 - BONS TEMPOS', 'JEFF KINNEY, ALEXANDRE BOIDE', 2015, 1, '2026-02-12 14:54:42', '9788576839422', 'https://covers.openlibrary.org/b/isbn/9788576839422-L.jpg', 1, 1, 0, 'script type=\"text/javascript\" function writeStandout(d){document.getElementById(\"standoutDiv\").innerHTML = \'iframe width=\"\'+((window.screen.width=960)?960:window.screen.width)+\'\" height=\"\'+parseInt(d.productHeight)+\'\" src=\"//www.standout.com.br/exclusivocultura/p/oroMjbxuLBI,/livro/diario-de-um-banana-10-bons-tempos\" frameborder=\"0\" allowfullscreen/iframe\';} if (window.jQuery){jQuery(document).ready(function(){jQuery.ajax({url:\"//www.standout.com.br/exclusivocultura/s/livro/diario-de-um-banana-10-bons-tempos\",dataType:\"jsonp\",crossDomain:true,jsonp:false,jsonpCallback:\"writeStandout\",timeout: 2000}).error(function(){writeStandout({productHeight: 2768});});});} else setTimeout(function () { writeStandout({productHeight: 2768}); }, 200); /script div id=\"standoutDiv\"/div', '', ''),
+(16, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-02-12 14:54:44', '9788502064355', 'https://covers.openlibrary.org/b/isbn/9788502064355-L.jpg', 1, 1, 0, '', '', 'Saraiva'),
 (17, 'Livro sem Título', 'Golias', 2026, 1, '2026-02-12 14:54:46', '1565489878964', 'https://covers.openlibrary.org/b/isbn/1565489878964-L.jpg', 2, 2, 0, '', '', ''),
 (18, 'Livro sem Título', 'davi', 2026, 1, '2026-02-12 14:54:48', '1565489878965', 'https://covers.openlibrary.org/b/isbn/1565489878965-L.jpg', 2, 2, 0, '', '', ''),
 (19, 'Livro sem Título', 'Rei Saul', 2026, 1, '2026-02-12 14:54:50', '1454565894564', 'https://covers.openlibrary.org/b/isbn/1454565894564-L.jpg', 2, 2, 0, '', '', ''),
-(20, 'O idiota', 'Фёдор Михайлович Достоевский', 2019, 1, '2026-02-12 14:54:52', '9788544001882', 'https://covers.openlibrary.org/b/isbn/9788544001882-L.jpg', 3, 2, 3345, 'O idiota é uma das obras mais comoventes de Fiódor Dostoiévski. Abstrusa para os contemporâneos do escritor, mas atual e compreensível para quem a conhecer em nossos dias, ela conta a história de um jovem aristocrata russo que se atreve a defender o sublime ideal humanista numa sociedade regida pelas leis do livre comércio. Ovelha negra da alta-roda de São Petersburgo, o príncipe Míchkin é tachado de idiota em virtude das suas qualidades morais e acaba perdendo de fato o juízo. Sua imagem de mártir e visionário, inspirada na do magnífico Dom Quixote de Cervantes, fica interiorizada pelo leitor; seu trágico fim leva-o a perguntar a si mesmo onde termina a loucura e começa a santidade do protagonista e, consequentemente, a repensar o próprio conceito daquilo que pode ser objeto de compra e venda no conturbado âmbito das relações humanas. Revisão técnica e notas da tradução por Oleg Almeida (escritor e tradutor bielorrusso).', 'Russia in fiction, Fiction, Social conditions, Social life and customs, Russian fiction, Translations into English, Russia, Classic Literature, Continental european fiction (fictional works by one author), Television adaptations, Idiot (Television program), English fiction', 'Martin Claret'),
+(20, 'O idiota', 'Фёдор Михайлович Достоевский', 2019, 1, '2026-02-12 14:54:52', '9788544001882', 'https://covers.openlibrary.org/b/isbn/9788544001882-L.jpg', 2, 1, 3345, 'O idiota é uma das obras mais comoventes de Fiódor Dostoiévski. Abstrusa para os contemporâneos do escritor, mas atual e compreensível para quem a conhecer em nossos dias, ela conta a história de um jovem aristocrata russo que se atreve a defender o sublime ideal humanista numa sociedade regida pelas leis do livre comércio. Ovelha negra da alta-roda de São Petersburgo, o príncipe Míchkin é tachado de idiota em virtude das suas qualidades morais e acaba perdendo de fato o juízo. Sua imagem de mártir e visionário, inspirada na do magnífico Dom Quixote de Cervantes, fica interiorizada pelo leitor; seu trágico fim leva-o a perguntar a si mesmo onde termina a loucura e começa a santidade do protagonista e, consequentemente, a repensar o próprio conceito daquilo que pode ser objeto de compra e venda no conturbado âmbito das relações humanas. Revisão técnica e notas da tradução por Oleg Almeida (escritor e tradutor bielorrusso).', 'Russia in fiction, Fiction, Social conditions, Social life and customs, Russian fiction, Translations into English, Russia, Classic Literature, Continental european fiction (fictional works by one author), Television adaptations, Idiot (Television program), English fiction', 'Martin Claret'),
 (21, 'Livro sem Título', 'Editora Manole', 2026, 1, '2026-02-12 14:54:53', '9788520438299', 'https://covers.openlibrary.org/b/isbn/9788520438299-L.jpg', 2, 2, 0, '', '', ''),
 (22, 'Livro sem Título', 'aaaa', 2026, 1, '2026-02-12 14:54:55', '7899987885859', 'https://covers.openlibrary.org/b/isbn/7899987885859-L.jpg', 2, 2, 0, '', '', ''),
 (23, '1984', 'George Orwell', 2020, 1, '2026-02-12 14:54:57', '9786587034201', 'https://covers.openlibrary.org/b/isbn/9786587034201-L.jpg', 2, 2, 3345, 'Nesta obra magistral, acompanhamos o drama de Winston Smith, um funcionário do Ministério da Verdade, parte do governo do superestado da Oceania ― que inclui as Américas, a Austrália, a Inglaterra e o sul da África.\r\n\r\nO estado totalitário comandado pela figura mítica do Grande Irmão controla todos os aspectos da vida de seus cidadãos. No entanto, Smith odeia secretamente o Partido e deseja se rebelar contra o sistema.\r\n\r\n1984 foi escolhido pela revista Time como um dos cem melhores romances de língua inglesa e garantiu seu lugar como um clássico da literatura moderna.\r\n\r\nA obra se afirma como uma valiosa reflexão sobre os malefícios do totalitarismo.', 'futurology, censorship, surveillance, rebels, sting operations, historical negationism, memory holes, thoughtcrime, Outer Party, resistance movements, Newspeak, perpetual war', 'Via Leitura'),
 (24, 'Harry Potter e as Reliquias da Morte - Edicao Comemorativa dos 20 anos da Colecao Harry Potter', 'J. K. Rowling', 2019, 1, '2026-02-12 14:54:58', '9788532531827', 'https://covers.openlibrary.org/b/isbn/9788532531827-L.jpg', 3, 3, 3446, 'Burdened with the dark, dangerous, and seemingly impossible task of locating and destroying Voldemort\'s remaining Horcruxes, Harry, feeling alone and uncertain about his future, struggles to find the inner strength he needs to follow the path set out before him.', 'England', 'Rocco'),
-(25, 'Crônicas de Nárnia - Volume Único, As', '', 2005, 0, '2026-02-13 14:24:59', '9788533622104', 'https://covers.openlibrary.org/b/isbn/9788533622104-L.jpg?default=false', 1, 1, 3345, '', '', 'Martins Fontes');
+(25, 'Crônicas de Nárnia - Volume Único, As', '', 2005, 1, '2026-02-13 14:24:59', '9788533622104', 'https://covers.openlibrary.org/b/isbn/9788533622104-L.jpg?default=false', 1, 1, 3345, '', '', 'Martins Fontes');
 
 -- --------------------------------------------------------
 
@@ -4567,7 +4602,9 @@ ALTER TABLE `emprestimo_itens`
 --
 ALTER TABLE `funcionarios`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD UNIQUE KEY `ux_funcionarios_email` (`email`),
+  ADD UNIQUE KEY `ux_funcionarios_cpf` (`cpf`);
 
 --
 -- Índices de tabela `livros`
@@ -4603,19 +4640,19 @@ ALTER TABLE `cdd_keywords`
 -- AUTO_INCREMENT de tabela `emprestimos`
 --
 ALTER TABLE `emprestimos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT de tabela `emprestimo_itens`
 --
 ALTER TABLE `emprestimo_itens`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT de tabela `funcionarios`
 --
 ALTER TABLE `funcionarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de tabela `livros`

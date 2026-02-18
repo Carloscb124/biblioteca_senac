@@ -5,39 +5,42 @@ include("../conexao.php");
 include("../includes/header.php");
 
 $hoje = date('Y-m-d');
-
 $inicio = $_GET['inicio'] ?? date('Y-m-d', strtotime('-30 days'));
 $fim    = $_GET['fim'] ?? $hoje;
 
 function h($s){ return htmlspecialchars($s ?? ''); }
 
-// KPIs do período (contando emprestimos, status pelos itens)
+// KPIs do período (contando EMPRÉSTIMOS, com status via itens)
 $stmt = mysqli_prepare($conn, "
   SELECT
     COUNT(*) AS total,
-    SUM(CASE WHEN t.abertos = 0 THEN 1 ELSE 0 END) AS devolvidos,
+    SUM(CASE WHEN t.abertos = 0 AND t.perdidos = 0 THEN 1 ELSE 0 END) AS devolvidos,
     SUM(CASE WHEN t.abertos > 0 THEN 1 ELSE 0 END) AS abertos,
-    SUM(CASE WHEN t.abertos > 0 AND t.data_prevista IS NOT NULL AND t.data_prevista < CURDATE() THEN 1 ELSE 0 END) AS atrasados
+    SUM(CASE WHEN t.abertos > 0 AND t.data_prevista IS NOT NULL AND t.data_prevista < CURDATE() THEN 1 ELSE 0 END) AS atrasados,
+    SUM(CASE WHEN t.perdidos > 0 THEN 1 ELSE 0 END) AS com_perdidos
   FROM (
     SELECT
       e.id,
       e.data_prevista,
-      SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos
+      SUM(CASE WHEN ei.devolvido = 0 AND ei.perdido = 0 THEN 1 ELSE 0 END) AS abertos,
+      SUM(CASE WHEN ei.perdido = 1 THEN 1 ELSE 0 END) AS perdidos
     FROM emprestimos e
     JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
-    WHERE e.data_emprestimo BETWEEN ? AND ?
+    WHERE e.cancelado = 0
+      AND e.data_emprestimo BETWEEN ? AND ?
     GROUP BY e.id
   ) t
 ");
 mysqli_stmt_bind_param($stmt, "ss", $inicio, $fim);
 mysqli_stmt_execute($stmt);
-$kpi = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: ['total'=>0,'devolvidos'=>0,'abertos'=>0,'atrasados'=>0];
+$kpi = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: ['total'=>0,'devolvidos'=>0,'abertos'=>0,'atrasados'=>0,'com_perdidos'=>0];
 
-// gráfico por dia (quantos emprestimos criados por dia)
+// gráfico por dia (quantos empréstimos criados por dia)
 $stmt = mysqli_prepare($conn, "
   SELECT e.data_emprestimo AS dia, COUNT(*) AS qtd
   FROM emprestimos e
-  WHERE e.data_emprestimo BETWEEN ? AND ?
+  WHERE e.cancelado = 0
+    AND e.data_emprestimo BETWEEN ? AND ?
   GROUP BY e.data_emprestimo
   ORDER BY e.data_emprestimo ASC
 ");
@@ -52,7 +55,7 @@ while ($row = mysqli_fetch_assoc($resGraf)) {
   $values[] = (int)$row['qtd'];
 }
 
-// Lista detalhada (1 linha por emprestimo)
+// Lista detalhada (1 linha por empréstimo)
 $stmt = mysqli_prepare($conn, "
   SELECT
     e.id,
@@ -60,13 +63,15 @@ $stmt = mysqli_prepare($conn, "
     e.data_emprestimo,
     e.data_prevista,
     COUNT(ei.id) AS qtd_itens,
-    SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos,
+    SUM(CASE WHEN ei.devolvido = 0 AND ei.perdido = 0 THEN 1 ELSE 0 END) AS abertos,
+    SUM(CASE WHEN ei.perdido = 1 THEN 1 ELSE 0 END) AS perdidos,
     GROUP_CONCAT(DISTINCT l.titulo ORDER BY l.titulo SEPARATOR ' | ') AS livros_titulos
   FROM emprestimos e
   JOIN usuarios u ON u.id = e.id_usuario
   JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
   JOIN livros l ON l.id = ei.id_livro
-  WHERE e.data_emprestimo BETWEEN ? AND ?
+  WHERE e.cancelado = 0
+    AND e.data_emprestimo BETWEEN ? AND ?
   GROUP BY e.id
   ORDER BY e.data_emprestimo DESC
 ");
@@ -116,7 +121,7 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
       <div class="report-card">
         <div class="report-card__top"><i class="bi bi-list-check"></i><span>Total</span></div>
         <div class="report-card__num"><?= (int)$kpi['total'] ?></div>
-        <div class="report-card__foot">no período</div>
+        <div class="report-card__foot">empréstimos</div>
       </div>
 
       <div class="report-card">
@@ -134,7 +139,15 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
       <div class="report-card report-card--danger">
         <div class="report-card__top"><i class="bi bi-exclamation-triangle"></i><span>Atrasados</span></div>
         <div class="report-card__num"><?= (int)$kpi['atrasados'] ?></div>
-        <div class="report-card__foot">requer atenção</div>
+        <div class="report-card__foot">atenção</div>
+      </div>
+    </div>
+
+    <div class="report-kpis mt-3">
+      <div class="report-card report-card--danger">
+        <div class="report-card__top"><i class="bi bi-x-octagon"></i><span>Com perdidos</span></div>
+        <div class="report-card__num"><?= (int)$kpi['com_perdidos'] ?></div>
+        <div class="report-card__foot">empréstimos que tiveram item perdido</div>
       </div>
     </div>
 
@@ -161,13 +174,17 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
           <tbody>
             <?php
               $hoje2 = date('Y-m-d');
+              $temLinhas = false;
               while ($r = mysqli_fetch_assoc($lista)) {
+                $temLinhas = true;
                 $abertos = (int)$r['abertos'];
+                $perdidos = (int)$r['perdidos'];
                 $qtd = (int)$r['qtd_itens'];
                 $prev = $r['data_prevista'] ?? null;
 
-                $devolvido = ($abertos === 0);
-                $atrasado = (!$devolvido && !empty($prev) && $prev < $hoje2);
+                $devolvido = ($abertos === 0 && $perdidos === 0);
+                $atrasado = (!$devolvido && $abertos > 0 && !empty($prev) && $prev < $hoje2);
+                $temPerdido = ($perdidos > 0);
 
                 $livroTxt = ($qtd > 1) ? ($qtd . " livros") : ($r['livros_titulos'] ?? '—');
             ?>
@@ -177,7 +194,9 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
                 <td><?= h($r['data_emprestimo']) ?></td>
                 <td><?= h($r['data_prevista'] ?? '-') ?></td>
                 <td>
-                  <?php if ($devolvido) { ?>
+                  <?php if ($temPerdido) { ?>
+                    <span class="badge-soft-no"><i class="bi bi-x-circle"></i> Perdido</span>
+                  <?php } elseif ($devolvido) { ?>
                     <span class="badge-status badge-done">Devolvido</span>
                   <?php } elseif ($atrasado) { ?>
                     <span class="badge-status badge-late">Atrasado</span>
@@ -187,7 +206,8 @@ $mesPassadoFim = date('Y-m-t', strtotime('last day of last month'));
                 </td>
               </tr>
             <?php } ?>
-            <?php if ((int)$kpi['total'] === 0) { ?>
+
+            <?php if (!$temLinhas) { ?>
               <tr><td colspan="5" class="text-muted">Nenhum empréstimo no período.</td></tr>
             <?php } ?>
           </tbody>

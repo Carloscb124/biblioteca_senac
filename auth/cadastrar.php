@@ -18,7 +18,7 @@ if ($hasAny) {
   require_admin();
 }
 
-$old = $_SESSION['old_auth'] ?? ['nome'=>'','email'=>'','cargo'=>'BIBLIOTECARIO'];
+$old = $_SESSION['old_auth'] ?? ['nome'=>'','email'=>'','cpf'=>'','cargo'=>'BIBLIOTECARIO'];
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -83,8 +83,34 @@ $old = $_SESSION['old_auth'] ?? ['nome'=>'','email'=>'','cargo'=>'BIBLIOTECARIO'
 
         <div class="mb-3">
           <label class="form-label">Email</label>
-          <input class="form-control" type="email" name="email" required placeholder="seu@email.com"
-                 value="<?= htmlspecialchars($old['email'] ?? '') ?>">
+          <input
+            class="form-control"
+            type="email"
+            name="email"
+            required
+            placeholder="exemplo@gmail.com"
+            value="<?= htmlspecialchars($old['email'] ?? '') ?>"
+            pattern=".+@(gmail\.com|outlook\.com|hotmail\.com|yahoo\.com|icloud\.com|live\.com|proton\.me|protonmail\.com)$"
+            title="Use um email válido: Gmail, Outlook, Hotmail, Yahoo, iCloud, Live ou Proton."
+          >
+          <div class="form-text">
+            Aceita somente provedores comuns (gmail, outlook, hotmail...).
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">CPF</label>
+          <input
+            class="form-control"
+            type="text"
+            name="cpf"
+            id="cpf"
+            required
+            placeholder="000.000.000-00"
+            maxlength="14"
+            value="<?= htmlspecialchars($old['cpf'] ?? '') ?>"
+          >
+          <div class="form-text">CPF é obrigatório (somente números).</div>
         </div>
 
         <div class="mb-3">
@@ -117,6 +143,28 @@ $old = $_SESSION['old_auth'] ?? ['nome'=>'','email'=>'','cargo'=>'BIBLIOTECARIO'
   </div>
 
 </div>
+
+<script>
+// máscara CPF
+(function(){
+  const cpf = document.getElementById("cpf");
+  function onlyDigits(v){ return (v || "").replace(/\D+/g, ""); }
+
+  function maskCPF(v){
+    const d = onlyDigits(v).slice(0, 11);
+    return d
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+
+  if (cpf) {
+    cpf.addEventListener("input", () => cpf.value = maskCPF(cpf.value));
+    cpf.addEventListener("blur",  () => cpf.value = maskCPF(cpf.value));
+    cpf.value = maskCPF(cpf.value);
+  }
+})();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

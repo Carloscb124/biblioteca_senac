@@ -19,31 +19,32 @@ $usuarios_total = (int)(mysqli_fetch_assoc(
   mysqli_query($conn, "SELECT COUNT(*) AS c FROM usuarios WHERE ativo = 1 AND perfil = 'leitor'")
 )['c'] ?? 0);
 
-// Empréstimos em aberto: existe pelo menos 1 item não devolvido no empréstimo
+// ✅ Empréstimos em aberto: existe pelo menos 1 item NÃO devolvido E NÃO perdido
 $sql_abertos = "
   SELECT COUNT(*) AS c
   FROM (
     SELECT e.id
     FROM emprestimos e
     JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
+    WHERE IFNULL(e.cancelado,0) = 0
     GROUP BY e.id
-    HAVING SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0
+    HAVING SUM(CASE WHEN ei.devolvido = 0 AND IFNULL(ei.perdido,0)=0 THEN 1 ELSE 0 END) > 0
   ) t
 ";
 $em_emprestimo = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sql_abertos))['c'] ?? 0);
 
-// Empréstimos atrasados: tem item aberto E data_prevista < hoje
-// (data_prevista fica na tabela emprestimos, como seu print mostrou)
+// ✅ Empréstimos atrasados: tem item aberto (não devolvido e não perdido) E data_prevista < hoje
 $sql_atrasados = "
   SELECT COUNT(*) AS c
   FROM (
     SELECT e.id
     FROM emprestimos e
     JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
-    WHERE e.data_prevista IS NOT NULL
+    WHERE IFNULL(e.cancelado,0) = 0
+      AND e.data_prevista IS NOT NULL
       AND e.data_prevista < CURDATE()
     GROUP BY e.id
-    HAVING SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0
+    HAVING SUM(CASE WHEN ei.devolvido = 0 AND IFNULL(ei.perdido,0)=0 THEN 1 ELSE 0 END) > 0
   ) t
 ";
 $atrasados = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sql_atrasados))['c'] ?? 0);
@@ -59,7 +60,13 @@ function buscarRecentes(mysqli $conn) {
       u.nome AS membro,
 
       COUNT(ei.id) AS qtd_itens,
-      SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos,
+
+      -- ✅ abertos = não devolvido e não perdido
+      SUM(CASE WHEN ei.devolvido = 0 AND IFNULL(ei.perdido,0)=0 THEN 1 ELSE 0 END) AS abertos,
+
+      -- ✅ perdidos
+      SUM(CASE WHEN IFNULL(ei.perdido,0)=1 THEN 1 ELSE 0 END) AS perdidos,
+
       MAX(ei.data_devolucao) AS ultima_devolucao,
 
       GROUP_CONCAT(DISTINCT l.titulo ORDER BY l.titulo SEPARATOR ' | ') AS livros_titulos
@@ -67,6 +74,7 @@ function buscarRecentes(mysqli $conn) {
     JOIN usuarios u ON u.id = e.id_usuario
     JOIN emprestimo_itens ei ON ei.emprestimo_id = e.id
     JOIN livros l ON l.id = ei.id_livro
+    WHERE IFNULL(e.cancelado,0) = 0
     GROUP BY e.id
     ORDER BY e.id DESC
     LIMIT 3
@@ -86,12 +94,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'recentes') {
 
   if ($recentesAjax && mysqli_num_rows($recentesAjax) > 0) {
     while ($e = mysqli_fetch_assoc($recentesAjax)) {
-      $abertos  = (int)($e['abertos'] ?? 0);
-      $qtd      = (int)($e['qtd_itens'] ?? 0);
-      $prevista = $e['data_prevista'] ?? null;
+      $abertos   = (int)($e['abertos'] ?? 0);
+      $perdidos  = (int)($e['perdidos'] ?? 0);
+      $qtd       = (int)($e['qtd_itens'] ?? 0);
+      $prevista  = $e['data_prevista'] ?? null;
 
-      $devolvido = ($abertos === 0);
-      $atrasado  = (!$devolvido && !empty($prevista) && $prevista < $hoje);
+      // ✅ fechado = não tem mais abertos (tudo devolvido OU perdido)
+      $fechado = ($abertos === 0);
+      $temPerdido = ($fechado && $perdidos > 0);
+
+      $atrasado = (!$fechado && !empty($prevista) && $prevista < date('Y-m-d'));
 
       $livroTxt = ($qtd > 1) ? ($qtd . " livros") : ($e['livros_titulos'] ?? '—');
 
@@ -100,12 +112,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'recentes') {
       echo "<td>" . htmlspecialchars($e['membro']) . "</td>";
 
       echo "<td class='text-muted'>";
-      if ($devolvido) echo htmlspecialchars($e['ultima_devolucao'] ?? '-');
+      if ($fechado) echo htmlspecialchars($e['ultima_devolucao'] ?? '-');
       else echo htmlspecialchars($prevista ?? '-');
       echo "</td>";
 
       echo "<td>";
-      if ($devolvido) echo "<span class='badge-status badge-done'>Devolvido</span>";
+      if ($temPerdido) echo "<span class='badge-status badge-lost'>Perdido</span>";
+      elseif ($fechado) echo "<span class='badge-status badge-done'>Devolvido</span>";
       elseif ($atrasado) echo "<span class='badge-status badge-late'>Atrasado</span>";
       else echo "<span class='badge-status badge-open'>Aberto</span>";
       echo "</td>";
@@ -199,12 +212,14 @@ include("includes/header.php");
           <tbody id="tbodyRecentes">
             <?php if ($recentes && mysqli_num_rows($recentes) > 0) { ?>
               <?php while ($e = mysqli_fetch_assoc($recentes)) {
-                $abertos  = (int)($e['abertos'] ?? 0);
-                $qtd      = (int)($e['qtd_itens'] ?? 0);
-                $prevista = $e['data_prevista'] ?? null;
+                $abertos   = (int)($e['abertos'] ?? 0);
+                $perdidos  = (int)($e['perdidos'] ?? 0);
+                $qtd       = (int)($e['qtd_itens'] ?? 0);
+                $prevista  = $e['data_prevista'] ?? null;
 
-                $devolvido = ($abertos === 0);
-                $atrasado  = (!$devolvido && !empty($prevista) && $prevista < $hoje);
+                $fechado = ($abertos === 0);
+                $temPerdido = ($fechado && $perdidos > 0);
+                $atrasado  = (!$fechado && !empty($prevista) && $prevista < $hoje);
 
                 $livroTxt = ($qtd > 1) ? ($qtd . " livros") : ($e['livros_titulos'] ?? '—');
               ?>
@@ -214,13 +229,15 @@ include("includes/header.php");
 
                   <td class="text-muted">
                     <?php
-                      if ($devolvido) echo htmlspecialchars($e['ultima_devolucao'] ?? '-');
+                      if ($fechado) echo htmlspecialchars($e['ultima_devolucao'] ?? '-');
                       else echo htmlspecialchars($prevista ?? '-');
                     ?>
                   </td>
 
                   <td>
-                    <?php if ($devolvido) { ?>
+                    <?php if ($temPerdido) { ?>
+                      <span class="badge-status badge-lost">Perdido</span>
+                    <?php } elseif ($fechado) { ?>
                       <span class="badge-status badge-done">Devolvido</span>
                     <?php } elseif ($atrasado) { ?>
                       <span class="badge-status badge-late">Atrasado</span>
@@ -272,6 +289,20 @@ include("includes/header.php");
     color: #6c757d;
     margin-top: 6px;
   }
+
+  /* badge perdido (caso não exista no seu css global) */
+  .badge-lost{
+    background:#ffe1e1;
+    color:#b42318;
+    border:1px solid #f5a3a3;
+    padding:.35rem .65rem;
+    border-radius:999px;
+    font-weight:600;
+    font-size:.85rem;
+    display:inline-flex;
+    align-items:center;
+    gap:.35rem;
+  }
 </style>
 
 <script>
@@ -293,7 +324,7 @@ include("includes/header.php");
         tbody.innerHTML = html;
       }
     }catch(e){
-      // falhou? deixa quieto, a vida segue
+      // falhou? deixa quieto
     }
   }
 

@@ -34,6 +34,9 @@ $where = [];
 $params = [];
 $types = "";
 
+// por padrão, esconde cancelados
+$where[] = "(IFNULL(e.cancelado,0) = 0)";
+
 if ($q !== '') {
   $where[] = "(u.nome LIKE ? OR l.titulo LIKE ? OR l.autor LIKE ? OR l.ISBN LIKE ?)";
   $like = "%{$q}%";
@@ -41,23 +44,37 @@ if ($q !== '') {
   $types .= "ssss";
 }
 
+// abertos = devolvido=0 E perdido=0
+$exprAbertos = "SUM(CASE WHEN ei.devolvido = 0 AND IFNULL(ei.perdido,0)=0 THEN 1 ELSE 0 END)";
+$exprPerdidos = "SUM(CASE WHEN IFNULL(ei.perdido,0)=1 THEN 1 ELSE 0 END)";
+
 $having = [];
 
 if ($status === 'atrasado') {
   $where[] = "(e.data_prevista IS NOT NULL AND e.data_prevista < ?)";
   $params[] = $hoje;
   $types .= "s";
-  $having[] = "SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0";
+  // atrasado = tem item em aberto e NÃO tem item perdido
+  $having[] = "{$exprAbertos} > 0";
+  $having[] = "{$exprPerdidos} = 0";
 } elseif ($status === 'aberto') {
   $where[] = "(e.data_prevista IS NULL OR e.data_prevista >= ?)";
   $params[] = $hoje;
   $types .= "s";
-  $having[] = "SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) > 0";
+  // aberto = tem item em aberto e NÃO tem item perdido
+  $having[] = "{$exprAbertos} > 0";
+  $having[] = "{$exprPerdidos} = 0";
 } elseif ($status === 'devolvido') {
-  $having[] = "SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) = 0";
+  // devolvido = não tem itens em aberto e NÃO tem item perdido
+  $having[] = "{$exprAbertos} = 0";
+  $having[] = "{$exprPerdidos} = 0";
+} elseif ($status === 'perdido') {
+  // perdido = tem pelo menos 1 item perdido (independente de ter abertos)
+  $having[] = "{$exprPerdidos} > 0";
 }
 
-$whereSql = count($where) ? ("WHERE " . implode(" AND ", $where)) : "";
+
+$whereSql  = count($where)  ? ("WHERE "  . implode(" AND ", $where))  : "";
 $havingSql = count($having) ? ("HAVING " . implode(" AND ", $having)) : "";
 
 // ===============================
@@ -79,8 +96,7 @@ $sqlCount = "
 $stmtC = mysqli_prepare($conn, $sqlCount);
 if ($types !== "") mysqli_stmt_bind_param($stmtC, $types, ...$params);
 mysqli_stmt_execute($stmtC);
-$resC = mysqli_stmt_get_result($stmtC);
-$total = (int)(mysqli_fetch_assoc($resC)['total'] ?? 0);
+$total = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtC))['total'] ?? 0);
 
 $total_paginas = max(1, (int)ceil($total / $por_pagina));
 if ($pagina > $total_paginas) $pagina = $total_paginas;
@@ -96,7 +112,8 @@ $sql = "
     e.data_prevista,
     u.nome AS usuario_nome,
     COUNT(ei.id) AS qtd_itens,
-    SUM(CASE WHEN ei.devolvido = 0 THEN 1 ELSE 0 END) AS abertos,
+    {$exprAbertos} AS abertos,
+    {$exprPerdidos} AS perdidos,
     MAX(ei.data_devolucao) AS ultima_devolucao,
     GROUP_CONCAT(DISTINCT l.titulo ORDER BY l.titulo SEPARATOR ' | ') AS livros_titulos
   FROM emprestimos e
@@ -110,10 +127,8 @@ $sql = "
   LIMIT ? OFFSET ?
 ";
 $stmt = mysqli_prepare($conn, $sql);
-
 $types2 = $types . "ii";
 $params2 = array_merge($params, [$por_pagina, $offset]);
-
 mysqli_stmt_bind_param($stmt, $types2, ...$params2);
 mysqli_stmt_execute($stmt);
 $r = mysqli_stmt_get_result($stmt);
@@ -137,10 +152,12 @@ function statusLabel($s)
   if ($s === 'aberto') return "Abertos";
   if ($s === 'atrasado') return "Atrasados";
   if ($s === 'devolvido') return "Devolvidos";
+  if ($s === 'perdido') return "Perdidos";
   return "Todos";
 }
-function badgeStatus(bool $devolvido, bool $atrasado)
+function badgeStatusLoan(bool $devolvido, bool $atrasado, bool $temPerdido)
 {
+  if ($temPerdido) return "<span class='badge-status badge-lost'><i class='bi bi-exclamation-triangle'></i> Perdido</span>";
   if ($devolvido) return "<span class='badge-status badge-done'><i class='bi bi-check-circle'></i> Devolvido</span>";
   if ($atrasado)  return "<span class='badge-status badge-late'><i class='bi bi-exclamation-circle'></i> Atrasado</span>";
   return "<span class='badge-status badge-open'><i class='bi bi-clock-history'></i> Aberto</span>";
@@ -189,6 +206,7 @@ function badgeStatus(bool $devolvido, bool $atrasado)
           <option value="aberto" <?= $status === 'aberto' ? 'selected' : '' ?>>Abertos</option>
           <option value="atrasado" <?= $status === 'atrasado' ? 'selected' : '' ?>>Atrasados</option>
           <option value="devolvido" <?= $status === 'devolvido' ? 'selected' : '' ?>>Devolvidos</option>
+          <option value="perdido" <?= $status === 'perdido' ? 'selected' : '' ?>>Perdidos</option>
         </select>
       </div>
     </div>
@@ -220,16 +238,18 @@ function badgeStatus(bool $devolvido, bool $atrasado)
               $id = (int)$e['id'];
               $qtd = (int)($e['qtd_itens'] ?? 0);
               $abertos = (int)($e['abertos'] ?? 0);
+              $perdidos = (int)($e['perdidos'] ?? 0);
 
-              $devolvido = ($abertos === 0);
+              $encerrado = ($abertos === 0);
               $prevista = $e['data_prevista'] ?? null;
-              $atrasado = (!$devolvido && !empty($prevista) && $prevista < $hoje);
+
+              $atrasado = (!$encerrado && !empty($prevista) && $prevista < $hoje);
+              $temPerdido = ($perdidos > 0);
 
               $titulos = (string)($e['livros_titulos'] ?? '—');
 
-              // ✅ AQUI: o que você pediu
-              // se estiver em aberto, mostra quantos ainda faltam devolver
-              if ($devolvido) {
+              // coluna "Livro(s)"
+              if ($encerrado) {
                 $livroMostrar = ($qtd > 1) ? ($qtd . " livros") : $titulos;
               } else {
                 $livroMostrar = ($abertos === 1) ? "1 livro" : ($abertos . " livros");
@@ -247,10 +267,10 @@ function badgeStatus(bool $devolvido, bool $atrasado)
                 <td><?= htmlspecialchars($e['data_prevista'] ?? '-') ?></td>
                 <td><?= htmlspecialchars($e['ultima_devolucao'] ?? '-') ?></td>
 
-                <td><?= badgeStatus($devolvido, $atrasado) ?></td>
+                <td><?= badgeStatusLoan($encerrado, $atrasado, $temPerdido) ?></td>
 
                 <td class="text-end">
-                  <?php if (!$devolvido) { ?>
+                  <?php if (!$encerrado) { ?>
                     <a class="icon-btn icon-btn--edit"
                       href="renovar.php?id=<?= $id ?>"
                       title="Renovar"
@@ -267,26 +287,20 @@ function badgeStatus(bool $devolvido, bool $atrasado)
                       <i class="bi bi-check2-circle"></i>
                     </a>
 
-                    <!-- ✅ trocar "editar" por cancelar -->
+                    <!-- Cancelar (você usa excluir.php como cancelar) -->
                     <a class="icon-btn icon-btn--del"
-                      href="cancelar.php?id=<?= $id ?>"
+                      href="#"
                       title="Cancelar empréstimo"
-                      data-stop-row="1"
-                      onclick="return confirm('Cancelar este empréstimo?');">
+                      data-action="cancelar"
+                      data-id="<?= $id ?>"
+                      data-livro="<?= $livroAttr ?>"
+                      data-usuario="<?= $usuarioAttr ?>"
+                      data-stop-row="1">
                       <i class="bi bi-x-circle"></i>
                     </a>
+                  <?php } else { ?>
+                    <span class="text-muted small">—</span>
                   <?php } ?>
-
-                  <a class="icon-btn icon-btn--del"
-                    href="#"
-                    data-action="excluir"
-                    data-id="<?= $id ?>"
-                    data-livro="<?= $livroAttr ?>"
-                    data-usuario="<?= $usuarioAttr ?>"
-                    title="Excluir"
-                    data-stop-row="1">
-                    <i class="bi bi-trash"></i>
-                  </a>
                 </td>
               </tr>
             <?php } ?>
@@ -337,6 +351,7 @@ function badgeStatus(bool $devolvido, bool $atrasado)
         <h5 class="modal-title">
           <i class="bi bi-receipt me-2"></i>Detalhes do empréstimo
         </h5>
+        <!-- só o X -->
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
@@ -344,253 +359,355 @@ function badgeStatus(bool $devolvido, bool $atrasado)
         <div class="text-muted">Carregando...</div>
       </div>
 
-      <!-- ✅ sem botão de fechar aqui, só o X do header -->
+      <!-- footer é opcional, mas se o buscar.php mandar botões a gente coloca -->
       <div class="modal-footer d-flex gap-2 justify-content-end" id="detalhesFooter"></div>
     </div>
   </div>
 </div>
 
 <!-- =========================================================
-     MODAL: EXCLUIR
+     MODAL: CANCELAR (usa excluir.php)
      ========================================================= -->
-<div class="modal fade" id="modalExcluir" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px; overflow:hidden;">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-trash me-2"></i>Excluir empréstimo
+          <i class="bi bi-x-circle me-2"></i>Cancelar empréstimo
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
       <div class="modal-body">
-        <div class="mb-2 text-muted">Você está prestes a excluir:</div>
-        <div class="fw-semibold" id="modalExcLivro">Empréstimo</div>
-        <div class="text-muted small mt-1">Usuário: <span id="modalExcUsuario">Usuário</span></div>
+        <div class="mb-2 text-muted">Você está prestes a cancelar:</div>
+        <div class="fw-semibold" id="modalCanLivro">Empréstimo</div>
+        <div class="text-muted small mt-1">Usuário: <span id="modalCanUsuario">Usuário</span></div>
 
         <div class="alert alert-warning mt-3 mb-0" style="border-radius:12px;">
-          Atenção: excluir remove o registro do empréstimo do sistema.
+          Isso não apaga o histórico, só marca como cancelado.
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <a href="#" class="btn btn-danger" id="btnConfirmarExcluir">
-          <i class="bi bi-trash me-1"></i> Excluir
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius:999px;">Voltar</button>
+        <a href="#" class="btn btn-warning" id="btnConfirmarCancelar" style="border-radius:999px;">
+          <i class="bi bi-x-circle me-1"></i> Cancelar
         </a>
       </div>
     </div>
   </div>
 </div>
 
-<style>
-  tr.row-click {
-    cursor: pointer;
-  }
+<!-- =========================================================
+     MODAL: PERDIDO (bonito, sem confirm feio)
+     ========================================================= -->
+<div class="modal fade" id="modalPerdido" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle me-2 text-danger"></i>Marcar como perdido
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
 
-  tr.row-click:hover {
-    background: rgba(0, 0, 0, .02);
+      <div class="modal-body">
+        <div class="text-muted mb-2">Você tem certeza?</div>
+        <div class="fw-semibold" id="perdidoTitulo">Livro</div>
+
+        <div class="alert alert-danger mt-3 mb-0" style="border-radius:12px;">
+          Isso vai descontar <b>1 exemplar</b> do total do acervo desse livro.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius:999px;">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmarPerdido" style="border-radius:999px;">
+          <i class="bi bi-exclamation-triangle me-1"></i> Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  tr.row-click { cursor: pointer; }
+  tr.row-click:hover { background: rgba(0, 0, 0, .02); }
+
+  /* Badge do PERDIDO (pra não ficar igual atrasado) */
+  .badge-status.badge-lost{
+    background: rgba(220,53,69,.12);
+    border: 1px solid rgba(220,53,69,.35);
+    color: #dc3545;
   }
 </style>
 
 <script>
-  (function() {
-    const input = document.getElementById('search');
-    const status = document.getElementById('status');
-    const tbody = document.getElementById('tbody-emprestimos');
-    const pagWrap = document.getElementById('paginacao-emprestimos');
-    const resumo = document.getElementById('resumo-emprestimos');
+(function () {
+  const input = document.getElementById('search');
+  const status = document.getElementById('status');
+  const tbody = document.getElementById('tbody-emprestimos');
+  const pagWrap = document.getElementById('paginacao-emprestimos');
+  const resumo = document.getElementById('resumo-emprestimos');
 
-    const modalDetalhesEl = document.getElementById('modalDetalhes');
-    const detalhesBody = document.getElementById('detalhesBody');
-    const detalhesFooter = document.getElementById('detalhesFooter');
+  const modalDetalhesEl = document.getElementById('modalDetalhes');
+  const detalhesBody = document.getElementById('detalhesBody');
+  const detalhesFooter = document.getElementById('detalhesFooter');
 
-    const modalExcluirEl = document.getElementById('modalExcluir');
-    const modalExcLivro = document.getElementById('modalExcLivro');
-    const modalExcUsuario = document.getElementById('modalExcUsuario');
-    const btnExc = document.getElementById('btnConfirmarExcluir');
+  const modalCancelarEl = document.getElementById('modalCancelar');
+  const modalCanLivro = document.getElementById('modalCanLivro');
+  const modalCanUsuario = document.getElementById('modalCanUsuario');
+  const btnCancelar = document.getElementById('btnConfirmarCancelar');
 
-    let timer = null;
+  const modalPerdidoEl = document.getElementById('modalPerdido');
+  const perdidoTitulo = document.getElementById('perdidoTitulo');
+  const btnConfirmarPerdido = document.getElementById('btnConfirmarPerdido');
 
-    function getModalInstance(el) {
-      if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
-      return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+  let timer = null;
+
+  function getModalInstance(el) {
+    if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+  }
+
+  // estado pra recarregar
+  let currentPage = <?= (int)$pagina ?>;
+  let currentEmprestimoId = null;
+
+  // controle do "Perdido"
+  let pendingPerdidoItemId = null;
+  let pendingPerdidoTitulo = "Livro";
+
+  async function load(p = 1) {
+    currentPage = p;
+
+    const q = input.value.trim();
+    const s = status.value;
+
+    const url = new URL('buscar.php', window.location.href);
+    url.searchParams.set('q', q);
+    url.searchParams.set('status', s);
+    url.searchParams.set('p', p);
+
+    try {
+      const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'fetch' } });
+      const data = await res.json();
+
+      tbody.innerHTML = data.rows ?? `<tr><td colspan="8" class="text-center text-muted py-4">Nada encontrado.</td></tr>`;
+      pagWrap.innerHTML = data.pagination ?? "";
+      resumo.textContent = data.summary ?? "";
+    } catch (e) {
+      console.error(e);
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Erro ao buscar. Tente novamente.</td></tr>`;
+    }
+  }
+
+  function debounceLoad() {
+    clearTimeout(timer);
+    timer = setTimeout(() => load(1), 250);
+  }
+
+  input.addEventListener('input', debounceLoad);
+  status.addEventListener('change', () => load(1));
+
+  pagWrap.addEventListener('click', (ev) => {
+    const a = ev.target.closest('a');
+    if (!a) return;
+    ev.preventDefault();
+    const url = new URL(a.href);
+    const p = parseInt(url.searchParams.get('p') || '1', 10);
+    load(p);
+  });
+
+  async function abrirDetalhes(id) {
+    currentEmprestimoId = id;
+
+    const modal = getModalInstance(modalDetalhesEl);
+    if (!modal) {
+      window.location.href = `devolver.php?id=${encodeURIComponent(id)}`;
+      return;
     }
 
-    async function load(p = 1) {
-      const q = input.value.trim();
-      const s = status.value;
+    detalhesBody.innerHTML = "<div class='text-muted'>Carregando...</div>";
+    detalhesFooter.innerHTML = "";
+    modal.show();
 
+    try {
       const url = new URL('buscar.php', window.location.href);
-      url.searchParams.set('q', q);
-      url.searchParams.set('status', s);
-      url.searchParams.set('p', p);
+      url.searchParams.set('action', 'detalhes');
+      url.searchParams.set('id', id);
 
-      try {
-        const res = await fetch(url.toString(), {
-          headers: { 'X-Requested-With': 'fetch' }
-        });
-        const data = await res.json();
-        tbody.innerHTML = data.rows;
-        pagWrap.innerHTML = data.pagination;
-        resumo.textContent = data.summary;
-      } catch (e) {
-        console.error(e);
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Erro ao buscar. Tente novamente.</td></tr>`;
-      }
-    }
+      const res = await fetch(url.toString(), {
+        headers: { 'X-Requested-With': 'fetch' },
+        cache: 'no-store'
+      });
 
-    function debounceLoad() {
-      clearTimeout(timer);
-      timer = setTimeout(() => load(1), 250);
-    }
+      const data = await res.json();
 
-    input.addEventListener('input', debounceLoad);
-    status.addEventListener('change', () => load(1));
-
-    pagWrap.addEventListener('click', (ev) => {
-      const a = ev.target.closest('a');
-      if (!a) return;
-      ev.preventDefault();
-      const url = new URL(a.href);
-      const p = parseInt(url.searchParams.get('p') || '1', 10);
-      load(p);
-    });
-
-    // ✅ fixa estado fora pra não ficar resetando dentro
-    let currentPage = <?= (int)$pagina ?>;
-    let currentEmprestimoId = null;
-    let modalDetalhesListenerAdded = false;
-
-    async function abrirDetalhes(id) {
-      currentEmprestimoId = id;
-
-      const modal = getModalInstance(modalDetalhesEl);
-      if (!modal) {
-        window.location.href = `cancelar.php?id=${encodeURIComponent(id)}`;
+      if (!data.ok) {
+        detalhesBody.innerHTML = data.html || "<div class='text-muted'>Não foi possível carregar.</div>";
+        detalhesFooter.innerHTML = "";
         return;
       }
 
-      detalhesBody.innerHTML = "<div class='text-muted'>Carregando...</div>";
-      detalhesFooter.innerHTML = ""; // ✅ sem botão de fechar extra
-      modal.show();
+      detalhesBody.innerHTML = data.html || "";
+      detalhesFooter.innerHTML = data.footer || "";
 
-      // ✅ adiciona 1x só o listener do modal
-      if (!modalDetalhesListenerAdded) {
-        modalDetalhesListenerAdded = true;
+      // remove qualquer "Fechar" duplicado vindo do buscar.php
+      detalhesFooter.querySelectorAll('[data-bs-dismiss="modal"]').forEach(el => el.remove());
 
-        modalDetalhesEl.addEventListener('click', async (ev) => {
-          const btn = ev.target.closest('.js-devolver-item');
-          if (!btn) return;
+    } catch (e) {
+      console.error(e);
+      detalhesBody.innerHTML = "<div class='text-muted'>Erro ao carregar detalhes.</div>";
+      detalhesFooter.innerHTML = "";
+    }
+  }
 
-          const itemId = btn.getAttribute('data-item-id');
-          if (!itemId) return;
+  // =========================================================
+  // AÇÕES dentro do MODAL de detalhes (delegação)
+  // =========================================================
+  modalDetalhesEl.addEventListener('click', async (ev) => {
+    // DEVOLVER ITEM
+    const btnDev = ev.target.closest('.js-devolver-item');
+    if (btnDev) {
+      const itemId = btnDev.getAttribute('data-item-id');
+      if (!itemId) return;
 
-          btn.disabled = true;
-          btn.innerHTML = "<span class='spinner-border spinner-border-sm me-2'></span>Devolvendo...";
-
-          try {
-            const resp = await fetch(`devolver_item.php?ajax=1&item_id=${encodeURIComponent(itemId)}`, {
-              headers: { "X-Requested-With": "fetch" },
-              cache: "no-store"
-            });
-
-            const data = await resp.json();
-            if (!data.ok) {
-              alert(data.msg || "Não foi possível devolver.");
-              return;
-            }
-
-            if (currentEmprestimoId) await abrirDetalhes(currentEmprestimoId);
-            await load(currentPage);
-
-          } catch (e) {
-            alert("Erro ao devolver. Tente novamente.");
-          } finally {
-            btn.disabled = false;
-            btn.innerHTML = "<i class='bi bi-check2-circle me-1'></i> Devolver";
-          }
-        });
-      }
+      btnDev.disabled = true;
+      const old = btnDev.innerHTML;
+      btnDev.innerHTML = "<span class='spinner-border spinner-border-sm me-2'></span>Devolvendo...";
 
       try {
-        const url = new URL('buscar.php', window.location.href);
-        url.searchParams.set('action', 'detalhes');
-        url.searchParams.set('id', id);
-
-        const res = await fetch(url.toString(), {
-          headers: { 'X-Requested-With': 'fetch' },
-          cache: 'no-store'
+        const resp = await fetch(`devolver_item.php?ajax=1&item_id=${encodeURIComponent(itemId)}`, {
+          headers: { "X-Requested-With": "fetch" },
+          cache: "no-store"
         });
 
-        const data = await res.json();
-
+        const data = await resp.json();
         if (!data.ok) {
-          detalhesBody.innerHTML = data.html || "<div class='text-muted'>Não foi possível carregar.</div>";
+          alert(data.msg || "Não foi possível devolver.");
           return;
         }
 
-        detalhesBody.innerHTML = data.html;
-        detalhesFooter.innerHTML = data.footer || ""; // ✅ aqui você controla no buscar.php o que vai no footer
+        if (currentEmprestimoId) await abrirDetalhes(currentEmprestimoId);
+        await load(currentPage);
 
       } catch (e) {
-        console.error(e);
-        detalhesBody.innerHTML = "<div class='text-muted'>Erro ao carregar detalhes.</div>";
+        alert("Erro ao devolver. Tente novamente.");
+      } finally {
+        btnDev.disabled = false;
+        btnDev.innerHTML = old;
       }
+      return;
     }
 
-    tbody.addEventListener('click', (e) => {
-      const stop = e.target.closest("[data-stop-row='1']");
-      const btnDetalhes = e.target.closest("[data-action='detalhes']");
-      const btnExcluir = e.target.closest("[data-action='excluir']");
-      const anyLinkOrButton = e.target.closest("a, button");
+    // PERDER ITEM (abre modal bonitinho)
+    const btnPerder = ev.target.closest('.js-perder-item');
+    if (btnPerder) {
+      const itemId = btnPerder.getAttribute('data-item-id');
+      if (!itemId) return;
 
-      if (stop) return;
+      pendingPerdidoItemId = itemId;
+      pendingPerdidoTitulo = btnPerder.getAttribute('data-titulo') || "Livro";
 
-      if (btnDetalhes) {
-        e.preventDefault();
-        abrirDetalhes(btnDetalhes.getAttribute("data-id"));
-        return;
-      }
+      perdidoTitulo.textContent = pendingPerdidoTitulo;
 
-      if (btnExcluir) {
-        e.preventDefault();
-
-        const id = btnExcluir.getAttribute('data-id');
-        const livro = btnExcluir.getAttribute('data-livro') || 'Empréstimo';
-        const usuario = btnExcluir.getAttribute('data-usuario') || 'Usuário';
-
-        const modal = getModalInstance(modalExcluirEl);
-        if (!modal) {
-          window.location.href = `excluir.php?id=${encodeURIComponent(id)}`;
-          return;
+      const m = getModalInstance(modalPerdidoEl);
+      if (!m) {
+        // fallback simples
+        if (confirm("Marcar como PERDIDO? Isso desconta 1 do total do acervo desse livro.")) {
+          btnConfirmarPerdido.click();
         }
-
-        modalExcLivro.textContent = livro;
-        modalExcUsuario.textContent = usuario;
-        btnExc.href = `excluir.php?id=${encodeURIComponent(id)}`;
-        modal.show();
         return;
       }
 
-      if (anyLinkOrButton) return;
+      m.show();
+      return;
+    }
+  });
 
-      const tr = e.target.closest("tr[data-emprestimo-id]");
-      if (!tr) return;
+  // Confirma "Perdido"
+  btnConfirmarPerdido.addEventListener('click', async () => {
+    if (!pendingPerdidoItemId) return;
 
-      const id = tr.getAttribute("data-emprestimo-id");
-      abrirDetalhes(id);
-    });
+    btnConfirmarPerdido.disabled = true;
+    const old = btnConfirmarPerdido.innerHTML;
+    btnConfirmarPerdido.innerHTML = "<span class='spinner-border spinner-border-sm me-2'></span>Confirmando...";
 
-    // ✅ mantém página atual quando você navegar pela paginação via fetch
-    pagWrap.addEventListener('click', (ev) => {
-      const a = ev.target.closest('a');
-      if (!a) return;
-      const url = new URL(a.href);
-      currentPage = parseInt(url.searchParams.get('p') || '1', 10);
-    });
+    try {
+      const resp = await fetch(`perder_item.php?ajax=1&item_id=${encodeURIComponent(pendingPerdidoItemId)}`, {
+        headers: { "X-Requested-With": "fetch" },
+        cache: "no-store"
+      });
 
-  })();
+      const data = await resp.json();
+      if (!data.ok) {
+        alert(data.msg || "Não foi possível marcar como perdido.");
+        return;
+      }
+
+      // fecha modal
+      const m = getModalInstance(modalPerdidoEl);
+      if (m) m.hide();
+
+      if (currentEmprestimoId) await abrirDetalhes(currentEmprestimoId);
+      await load(currentPage);
+
+    } catch (e) {
+      alert("Erro. Tente novamente.");
+    } finally {
+      pendingPerdidoItemId = null;
+      btnConfirmarPerdido.disabled = false;
+      btnConfirmarPerdido.innerHTML = old;
+    }
+  });
+
+  // =========================================================
+  // Clique na tabela (delegação correta)
+  // =========================================================
+  tbody.addEventListener('click', (e) => {
+    // DETALHES
+    const btnDetalhes = e.target.closest("[data-action='detalhes']");
+    if (btnDetalhes) {
+      e.preventDefault();
+      abrirDetalhes(btnDetalhes.getAttribute("data-id"));
+      return;
+    }
+
+    // CANCELAR
+    const btnCan = e.target.closest("[data-action='cancelar']");
+    if (btnCan) {
+      e.preventDefault();
+
+      const id = btnCan.getAttribute('data-id');
+      const livro = btnCan.getAttribute('data-livro') || 'Empréstimo';
+      const usuario = btnCan.getAttribute('data-usuario') || 'Usuário';
+
+      const modal = getModalInstance(modalCancelarEl);
+      if (!modal) {
+        window.location.href = `excluir.php?id=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      modalCanLivro.textContent = livro;
+      modalCanUsuario.textContent = usuario;
+      btnCancelar.href = `excluir.php?id=${encodeURIComponent(id)}`;
+      modal.show();
+      return;
+    }
+
+    // se clicou em algum link/botão (tipo renovar), deixa navegar
+    const anyLinkOrButton = e.target.closest("a, button");
+    if (anyLinkOrButton) return;
+
+    // clique na linha abre detalhes
+    const tr = e.target.closest("tr[data-emprestimo-id]");
+    if (!tr) return;
+
+    abrirDetalhes(tr.getAttribute("data-emprestimo-id"));
+  });
+
+})();
 </script>
 
 <?php include("../includes/footer.php"); ?>

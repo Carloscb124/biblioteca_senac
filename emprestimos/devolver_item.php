@@ -26,19 +26,15 @@ try {
     SELECT ei.id, ei.emprestimo_id, ei.id_livro, ei.devolvido
     FROM emprestimo_itens ei
     WHERE ei.id = ?
-    FOR UPDATE
-    LIMIT 1
+    LIMIT 1 FOR UPDATE
   ");
   mysqli_stmt_bind_param($stmt, "i", $id_item);
   mysqli_stmt_execute($stmt);
   $item = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-  if (!$item) {
-    throw new Exception("Item não encontrado.");
-  }
+  if (!$item) throw new Exception("Item não encontrado.");
 
   if ((int)$item['devolvido'] === 1) {
-    // já devolvido (não faz nada)
     mysqli_commit($conn);
 
     if ($isAjax) {
@@ -62,12 +58,12 @@ try {
   mysqli_stmt_bind_param($stmtU, "i", $id_item);
   mysqli_stmt_execute($stmtU);
 
-  // devolve pro estoque: incrementa qtd_disp
   $livroId = (int)$item['id_livro'];
 
+  // devolve pro estoque, mas sem ultrapassar qtd_total
   $stmtL = mysqli_prepare($conn, "
     UPDATE livros
-    SET qtd_disp = qtd_disp + 1
+    SET qtd_disp = LEAST(qtd_disp + 1, qtd_total)
     WHERE id = ?
     LIMIT 1
   ");

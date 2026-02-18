@@ -4,7 +4,7 @@ include("../conexao.php");
 include("../includes/flash.php");
 
 $id_usuario = (int)($_POST['id_usuario'] ?? 0);
-$data_emp   = $_POST['data_emprestimo'] ?? '';
+$data_emp   = trim($_POST['data_emprestimo'] ?? '');
 $data_prev  = $_POST['data_prevista'] ?? null;
 
 $id_livros = $_POST['id_livros'] ?? [];
@@ -12,7 +12,7 @@ if (!is_array($id_livros)) $id_livros = [];
 
 $id_livros = array_map('intval', $id_livros);
 $id_livros = array_values(array_filter($id_livros, fn($v) => $v > 0));
-$id_livros = array_values(array_unique($id_livros));
+$id_livros = array_values(array_unique($id_livros)); // se quiser permitir pegar 2 exemplares iguais, remova isso
 
 if ($data_prev === '') $data_prev = null;
 
@@ -34,24 +34,26 @@ try {
   // 1) trava livros e valida disponibilidade
   foreach ($id_livros as $id_livro) {
     $stmt = mysqli_prepare($conn, "
-      SELECT qtd_disp, disponivel
+      SELECT id, qtd_disp, qtd_total, disponivel
       FROM livros
       WHERE id = ?
-      FOR UPDATE
+      LIMIT 1 FOR UPDATE
     ");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
     mysqli_stmt_execute($stmt);
-    $res = mysqli_stmt_get_result($stmt);
-    $livro = mysqli_fetch_assoc($res);
+    $livro = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
     if (!$livro) throw new Exception("Livro não encontrado (ID $id_livro).");
 
-    // se sua tabela não tiver 'disponivel', comenta essa linha
+    // dispo­nivel = 0 aqui significa desativado manualmente (admin), não “sem estoque”
     if (isset($livro['disponivel']) && (int)$livro['disponivel'] !== 1) {
       throw new Exception("Um dos livros está desativado.");
     }
 
-    if ((int)$livro['qtd_disp'] <= 0) throw new Exception("Um dos livros está sem exemplares disponíveis.");
+    // estoque
+    if ((int)$livro['qtd_disp'] <= 0) {
+      throw new Exception("Um dos livros está sem exemplares disponíveis.");
+    }
   }
 
   // 2) cria cabeçalho
@@ -59,13 +61,14 @@ try {
     INSERT INTO emprestimos (id_usuario, data_emprestimo, data_prevista)
     VALUES (?, ?, ?)
   ");
-  mysqli_stmt_bind_param($stmt, "iss", $id_usuario, $data_emp, $data_prev);
+  $dp = $data_prev; // pode ser null
+  mysqli_stmt_bind_param($stmt, "iss", $id_usuario, $data_emp, $dp);
   mysqli_stmt_execute($stmt);
 
   $emprestimo_id = (int)mysqli_insert_id($conn);
   if ($emprestimo_id <= 0) throw new Exception("Falha ao criar o empréstimo.");
 
-  // 3) cria itens + baixa estoque
+  // 3) cria itens + baixa estoque (SEM desativar o livro)
   foreach ($id_livros as $id_livro) {
 
     $stmt = mysqli_prepare($conn, "
@@ -75,21 +78,15 @@ try {
     mysqli_stmt_bind_param($stmt, "ii", $emprestimo_id, $id_livro);
     mysqli_stmt_execute($stmt);
 
-    // baixa estoque
+    // baixa somente o estoque disponível
     $stmt = mysqli_prepare($conn, "
       UPDATE livros
       SET qtd_disp = GREATEST(qtd_disp - 1, 0)
       WHERE id = ?
+      LIMIT 1
     ");
     mysqli_stmt_bind_param($stmt, "i", $id_livro);
     mysqli_stmt_execute($stmt);
-
-    // opcional: manter coluna 'disponivel' coerente
-    mysqli_query($conn, "
-      UPDATE livros
-      SET disponivel = CASE WHEN qtd_disp > 0 THEN 1 ELSE 0 END
-      WHERE id = $id_livro
-    ");
   }
 
   mysqli_commit($conn);

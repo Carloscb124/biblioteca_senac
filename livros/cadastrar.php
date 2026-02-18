@@ -143,7 +143,7 @@ function h($s)
       </div>
 
       <div class="form-actions mt-3">
-        <button class="btn btn-brand" type="submit">
+        <button class="btn btn-pill" type="submit">
           <i class="bi bi-check2"></i>
           Salvar
         </button>
