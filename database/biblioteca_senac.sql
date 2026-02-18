@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 18/02/2026 às 16:29
+-- Tempo de geração: 18/02/2026 às 16:52
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -4474,7 +4474,8 @@ CREATE TABLE `funcionarios` (
 --
 
 INSERT INTO `funcionarios` (`id`, `nome`, `email`, `senha`, `cargo`, `ativo`, `criado_em`, `cpf`, `telefone`, `email_verificado`, `email_codigo_hash`, `email_codigo_expira`) VALUES
-(9, 'Carlos', 'cb473355@gmail.com', '$2y$10$nkl8W723Qh2Vb072HPUKc.3l2k7Ihg5oxGqtpggJnXll9UqEXPcdq', 'admin', 1, '2026-02-18 15:27:41', '47750673890', NULL, 1, NULL, NULL);
+(12, 'Carlos', 'cb473355@gmail.com', '$2y$10$SyBQx0BUzKSkpZPzREfGgO/AVkv36oW8.86oO9.7rPEsWEmWsNXuC', 'admin', 1, '2026-02-18 15:40:30', '23087945230', NULL, 1, NULL, NULL),
+(13, 'teste', 'teste@gmail.com', '$2y$10$Z8aCj3QLAf9YJC5uzmFlA.UCp6/EiRG2BBGU7Z0FJevUova5MxPp6', '', 1, '2026-02-18 15:42:24', '23094723097', '(23) 98472-3874', 1, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -4528,7 +4529,7 @@ INSERT INTO `livros` (`id`, `titulo`, `autor`, `ano_publicacao`, `disponivel`, `
 (22, 'Magico de Oz', 'L. Frank Baum', 2013, 1, '2026-02-18 15:09:22', '9788537809662', 'https://covers.openlibrary.org/b/isbn/9788537809662-L.jpg', 2, 2, 0, '', 'Witches, Toy and movable books, Spanish language materials, Fiction, Wizards, Juvenile literature, Wizards in fiction, Children\'s stories, Russian, Specimens, Imaginary voyages in fiction, Classic Literature, Imaginary Voyages', 'Zahar'),
 (23, 'Origem', 'Dan Brown, Alves Calado', 2017, 1, '2026-02-18 15:09:23', '9788580417661', 'https://covers.openlibrary.org/b/isbn/9788580417661-L.jpg', 2, 2, 0, 'De onde viemos? Para onde vamos? Robert Langdon, o famoso professor de Simbologia de Harvard, chega ao ultramoderno Museu Guggenheim de Bilbao para assistir a uma apresentação sobre uma grande descoberta que promete \"mudar para sempre o papel da ciência\". O anfitrião da noite é o futurólogo bilionário Edmond Kirsch, de 40 anos, que se tornou conhecido mundialmente por suas previsões audaciosas e invenções de alta tecnologia. Um dos primeiros alunos de Langdon em Harvard, há 20 anos, agora ele está prestes a revelar uma incrível revolução no conhecimento... algo que vai responder a duas perguntas fundamentais da existência humana. Os convidados ficam hipnotizados pela apresentação, mas Langdon logo percebe que ela será muito mais controversa do que poderia imaginar. De repente, a noite meticulosamente orquestrada se transforma em um caos, e a preciosa descoberta de Kirsch corre o risco de ser perdida para sempre. Diante de uma ameaça iminente, Langdon tenta uma fuga desesperada de Bilbao ao lado de Ambra Vidal, a elegante diretora do museu que trabalhou na montagem do evento. Juntos seguem para Barcelona à procura de uma senha que ajudará a desvendar o segredo de Edmond Kirsch. Em meio a fatos históricos ocultos e extremismo religioso, Robert e Ambra precisam escapar de um inimigo atormentado cujo poder de saber tudo parece emanar do Palácio Real da Espanha. Alguém que não hesitará diante de nada para silenciar o futurólogo. Numa jornada marcada por obras de arte moderna e símbolos enigmáticos, os dois encontram pistas que vão deixá-los cara a cara com a chocante revelação de Kirsch... e com a verdade espantosa que ignoramos durante tanto tempo.', '', ''),
 (24, 'A invenção de Hugo Cabret', 'Brian Selznick, Marcos Bagno', 2007, 1, '2026-02-18 15:09:23', '9788576752035', 'https://covers.openlibrary.org/b/isbn/9788576752035-L.jpg', 2, 2, 0, 'Hugo Cabret é um menino órfão que vive escondido na central de trem de Paris dos anos 1930. Esgueirando-se por passagens secretas, Hugo cuida dos gigantescos relógios do lugar - escuta seus compassos, observa os enormes ponteiros e responsabiliza-se pelo funcionamento das máquinas. A sobrevivência de Hugo depende do anonimato - ele tenta se manter invisível porque guarda um incrível segredo, que é posto em risco quando o severo dono da loja de brinquedos da estação e sua afilhada cruzam o caminho do garoto. Um desenho enigmático, um caderno valioso, uma chave roubada e um homem mecânico estão no centro desta história, que, narrada por texto e imagens, procura misturar elementos dos quadrinhos e do cinema.', 'France', ''),
-(25, 'Frankenstein', 'Mary Shelley', 2023, 1, '2026-02-18 15:09:25', '9786580210343', 'https://covers.openlibrary.org/b/isbn/9786580210343-L.jpg', 2, 2, 0, '', 'Frankenstein (Fictitious character), Frankenstein\'s monster (Fictitious character), Fiction, Victor Frankenstein (Fictitious character), Scientists, Monsters, Fiction, horror, Frankenstein (fictitious character), fiction, Physicians, fiction, British fiction (fictional works by one author), Scientists, fiction, Geneva (Switzerland), fiction', 'Editora Antofágica');
+(25, 'Frankenstein', 'Mary Shelley', 2023, 1, '2026-02-18 15:09:25', '9786580210343', 'https://covers.openlibrary.org/b/isbn/9786580210343-L.jpg', 2, 2, 3345, 'O que forma um ser humano? Neste clássico de uma das maiores escritoras da história, um cientista descobre se basta juntar os órgãos corretos e lhes dar energia vital para criar uma existência humana – mas não imagina que pode perder completamente o controle. O ambicioso sonho de um cientista está fadado a levá-lo a uma jornada de provações. Trata-se de Victor Frankenstein, um jovem deslumbrado com a ciência e que deseja deixar sua marca nos avanços do conhecimento fazendo um experimento inédito: a criação de um ser humano em laboratório. Publicado originalmente em 1818, este clássico gótico que inaugura a ficção científica foi escrito por Mary Shelley durante um despretensioso desafio entre amigos e revelou o talento de uma autora que conquistou seu lugar no cânone mundial. Frankenstein agora recebe uma nova edição pela Antofágica, traduzida por Fábio Bonillo, com ilustrações de Iuri Casaes, além de apresentação da criminóloga e escritora Ilana Casoy (Bom dia, Verônica) e posfácios de Sofia Nestrovski, corroteirista e locutora do podcast “Vinte mil léguas”, Cristhiano Aguiar, autor de Gótico nordestino e professor de literatura na Universidade Presbiteriana Mackenzie e Nina da Hora, cientista da computação pela PUC-Rio, pesquisadora e ativista brasileira. O QR Code na cinta direciona a duas videoaulas sobre o livro disponíveis no YouTube com Sofia Nestrovski, escritora e mestre em Teoria Literária pela USP.', 'Frankenstein (Fictitious character), Frankenstein\'s monster (Fictitious character), Fiction, Victor Frankenstein (Fictitious character), Scientists, Monsters, Fiction, horror, Frankenstein (fictitious character), fiction, Physicians, fiction, British fiction (fictional works by one author), Scientists, fiction, Geneva (Switzerland), fiction', 'Editora Antofágica');
 
 -- --------------------------------------------------------
 
@@ -4652,7 +4653,7 @@ ALTER TABLE `emprestimo_itens`
 -- AUTO_INCREMENT de tabela `funcionarios`
 --
 ALTER TABLE `funcionarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de tabela `livros`
