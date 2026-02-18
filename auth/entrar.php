@@ -1,11 +1,15 @@
 <?php
 // auth/entrar.php
+// - Faz login normal
+// - Se email não estiver confirmado, manda para confirmar_email.php
+
 include("../conexao.php");
 include("../includes/flash.php");
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-/* mesmos domínios do cadastro */
+$base = "/biblioteca_senac";
+
 $ALLOWED_DOMAINS = [
   "gmail.com",
   "outlook.com",
@@ -24,7 +28,13 @@ function email_domain(string $email): string {
   return substr($email, $pos + 1);
 }
 
-$email = trim($_POST["email"] ?? "");
+function normalize_email(string $email): string {
+  $email = strtolower(trim($email));
+  $email = preg_replace('/\s+/', '', $email);
+  return $email;
+}
+
+$email = normalize_email($_POST["email"] ?? "");
 $senha = (string)($_POST["senha"] ?? "");
 
 if ($email === "" || $senha === "") {
@@ -33,17 +43,15 @@ if ($email === "" || $senha === "") {
   exit;
 }
 
-$emailLower = strtolower($email);
-
 // valida formato
-if (!filter_var($emailLower, FILTER_VALIDATE_EMAIL)) {
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   flash_set("danger", "Email inválido.");
   header("Location: login.php");
   exit;
 }
 
 // valida domínio
-$dom = email_domain($emailLower);
+$dom = email_domain($email);
 if ($dom === "" || !in_array($dom, $ALLOWED_DOMAINS, true)) {
   flash_set("danger", "Email não permitido. Use um provedor comum (Gmail, Outlook...).");
   header("Location: login.php");
@@ -52,25 +60,35 @@ if ($dom === "" || !in_array($dom, $ALLOWED_DOMAINS, true)) {
 
 // Busca usuário ativo
 $stmt = mysqli_prepare($conn, "
-  SELECT id, nome, email, senha, cargo
+  SELECT id, nome, email, senha, cargo, email_verificado
   FROM funcionarios
   WHERE email = ? AND ativo = 1
   LIMIT 1
 ");
-mysqli_stmt_bind_param($stmt, "s", $emailLower);
+mysqli_stmt_bind_param($stmt, "s", $email);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
-$f = mysqli_fetch_assoc($res);
+$f = $res ? mysqli_fetch_assoc($res) : null;
 
+// senha
 if (!$f || !password_verify($senha, $f["senha"])) {
   flash_set("danger", "Email ou senha inválidos.");
   header("Location: login.php");
   exit;
 }
 
+// BLOQUEIA login se não confirmou email
+if ((int)($f["email_verificado"] ?? 0) !== 1) {
+  flash_set("warning", "Seu email ainda não foi confirmado. Digite o código enviado.");
+  header("Location: confirmar_email.php?email=" . urlencode($email));
+  exit;
+}
+
+// normaliza cargo
 $cargo = strtoupper(trim($f["cargo"] ?? "BIBLIOTECARIO"));
 if ($cargo !== "ADMIN" && $cargo !== "BIBLIOTECARIO") $cargo = "BIBLIOTECARIO";
 
+// cria sessão
 $_SESSION["auth"] = [
   "id"    => (int)$f["id"],
   "nome"  => $f["nome"],

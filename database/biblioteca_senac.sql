@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 18/02/2026 às 15:43
+-- Tempo de geração: 18/02/2026 às 16:29
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -4382,26 +4382,27 @@ CREATE TABLE `emprestimos` (
 --
 
 INSERT INTO `emprestimos` (`id`, `id_usuario`, `data_emprestimo`, `data_prevista`, `cancelado`, `cancelado_em`, `cancelado_motivo`) VALUES
-(2, 5, '2026-02-13', '2026-02-20', 0, NULL, NULL),
-(3, 5, '2026-02-03', '2026-02-04', 0, NULL, NULL),
-(4, 1, '2026-02-13', '2026-02-20', 0, NULL, NULL),
-(5, 23, '2026-02-13', '2026-02-20', 0, NULL, NULL),
-(6, 5, '2026-02-13', '2026-02-20', 1, '2026-02-13 11:48:10', ''),
-(8, 23, '2026-02-15', '2026-02-22', 0, NULL, NULL),
-(10, 20, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(11, 20, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(12, 16, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(13, 1, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(14, 18, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(15, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(16, 1, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(17, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(19, 1, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(21, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(22, 20, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(24, 23, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(26, 23, '2026-02-17', '2026-02-24', 0, NULL, NULL),
-(28, 23, '2026-02-17', '2026-02-24', 0, NULL, NULL);
+(1, 8, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(2, 8, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(3, 8, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(4, 8, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(5, 9, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(6, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(7, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(8, 5, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(9, 7, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(10, 10, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(11, 9, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(12, 9, '2026-02-17', '2026-02-24', 0, NULL, NULL),
+(13, 8, '2026-02-15', '2026-02-22', 0, NULL, NULL),
+(14, 5, '2026-02-13', '2026-02-20', 1, NULL, NULL),
+(15, 5, '2026-02-13', '2026-02-20', 1, NULL, NULL),
+(16, 8, '2026-02-13', '2026-02-20', 0, NULL, NULL),
+(17, 5, '2026-02-03', '2026-02-04', 0, NULL, NULL),
+(18, 5, '2026-02-03', '2026-02-04', 0, NULL, NULL),
+(19, 5, '2026-02-13', '2026-02-20', 0, NULL, NULL),
+(20, 5, '2026-02-13', '2026-02-20', 0, NULL, NULL),
+(21, 5, '2026-02-18', '2026-02-25', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -4425,31 +4426,27 @@ CREATE TABLE `emprestimo_itens` (
 --
 
 INSERT INTO `emprestimo_itens` (`id`, `emprestimo_id`, `id_livro`, `data_devolucao`, `devolvido`, `criado_em`, `perdido`, `data_perdido`) VALUES
-(2, 2, 20, '2026-02-13', 1, '2026-02-13 11:55:47', 0, NULL),
-(3, 2, 16, '2026-02-05', 1, '2026-02-03 11:55:47', 0, NULL),
-(4, 3, 20, '2026-02-13', 1, '2026-02-13 12:32:06', 0, NULL),
-(5, 3, 16, '2026-02-13', 1, '2026-02-13 12:32:06', 0, NULL),
-(6, 4, 20, '2026-02-13', 1, '2026-02-13 12:33:11', 0, NULL),
-(7, 5, 24, '2026-02-13', 1, '2026-02-13 13:13:03', 0, NULL),
-(8, 6, 20, '2026-02-13', 1, '2026-02-13 14:47:59', 0, NULL),
-(9, 6, 16, '2026-02-13', 1, '2026-02-13 14:47:59', 0, NULL),
-(11, 8, 20, '2026-02-15', 1, '2026-02-15 20:42:39', 0, NULL),
-(13, 10, 16, '2026-02-17', 1, '2026-02-17 12:53:01', 0, NULL),
-(14, 11, 16, NULL, 0, '2026-02-17 12:55:11', 1, '2026-02-17'),
-(15, 12, 24, NULL, 0, '2026-02-17 12:56:54', 1, '2026-02-17'),
-(16, 13, 20, NULL, 0, '2026-02-17 13:23:28', 1, '2026-02-17'),
-(17, 14, 15, NULL, 0, '2026-02-17 13:35:29', 1, '2026-02-17'),
-(18, 15, 24, '2026-02-17', 1, '2026-02-17 13:42:03', 1, '2026-02-17'),
-(19, 16, 24, '2026-02-17', 1, '2026-02-17 13:42:51', 1, '2026-02-17'),
-(20, 17, 24, '2026-02-17', 1, '2026-02-17 13:43:03', 0, NULL),
-(22, 19, 20, '2026-02-17', 1, '2026-02-17 13:45:02', 0, NULL),
-(24, 21, 20, NULL, 0, '2026-02-17 14:20:12', 0, NULL),
-(25, 22, 16, '2026-02-17', 1, '2026-02-17 14:20:28', 1, '2026-02-17'),
-(27, 24, 20, '2026-02-17', 1, '2026-02-17 14:21:17', 0, NULL),
-(28, 24, 16, '2026-02-17', 1, '2026-02-17 14:21:17', 0, NULL),
-(30, 26, 16, '2026-02-17', 1, '2026-02-17 14:26:33', 0, NULL),
-(31, 26, 15, '2026-02-17', 1, '2026-02-17 14:26:33', 1, '2026-02-17'),
-(33, 28, 25, '2026-02-17', 1, '2026-02-17 14:27:41', 1, '2026-02-17');
+(1, 1, 1, '2026-02-17', 1, '2026-02-18 15:09:59', 1, '2026-02-17'),
+(2, 2, 11, '2026-02-17', 1, '2026-02-18 15:09:59', 1, '2026-02-17'),
+(3, 3, 10, '2026-02-17', 1, '2026-02-18 15:09:59', 0, NULL),
+(4, 4, 6, '2026-02-17', 1, '2026-02-18 15:09:59', 0, NULL),
+(5, 5, 10, '2026-02-17', 1, '2026-02-18 15:09:59', 1, '2026-02-17'),
+(6, 6, 6, '2026-02-18', 1, '2026-02-18 15:09:59', 0, NULL),
+(7, 7, 2, '2026-02-17', 1, '2026-02-18 15:09:59', 0, NULL),
+(8, 8, 2, '2026-02-17', 1, '2026-02-18 15:09:59', 1, '2026-02-17'),
+(9, 9, 11, '2026-02-18', 1, '2026-02-18 15:09:59', 1, '2026-02-18'),
+(10, 10, 2, '2026-02-18', 1, '2026-02-18 15:09:59', 1, '2026-02-18'),
+(11, 11, 10, '2026-02-18', 1, '2026-02-18 15:09:59', 1, '2026-02-18'),
+(12, 12, 10, '2026-02-17', 1, '2026-02-18 15:09:59', 0, NULL),
+(13, 13, 6, '2026-02-15', 1, '2026-02-18 15:09:59', 0, NULL),
+(14, 14, 10, '2026-02-13', 1, '2026-02-18 15:09:59', 0, NULL),
+(15, 15, 6, '2026-02-13', 1, '2026-02-18 15:09:59', 0, NULL),
+(16, 16, 2, '2026-02-13', 1, '2026-02-18 15:09:59', 0, NULL),
+(17, 17, 10, '2026-02-13', 1, '2026-02-18 15:09:59', 0, NULL),
+(18, 18, 6, '2026-02-13', 1, '2026-02-18 15:09:59', 0, NULL),
+(19, 19, 10, '2026-02-05', 1, '2026-02-18 15:09:59', 0, NULL),
+(20, 20, 6, '2026-02-13', 1, '2026-02-18 15:09:59', 0, NULL),
+(21, 21, 6, NULL, 0, '2026-02-18 15:10:44', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -4466,15 +4463,18 @@ CREATE TABLE `funcionarios` (
   `ativo` tinyint(1) NOT NULL DEFAULT 1,
   `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
   `cpf` varchar(11) DEFAULT NULL,
-  `telefone` varchar(20) DEFAULT NULL
+  `telefone` varchar(20) DEFAULT NULL,
+  `email_verificado` tinyint(1) NOT NULL DEFAULT 0,
+  `email_codigo_hash` varchar(64) DEFAULT NULL,
+  `email_codigo_expira` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Despejando dados para a tabela `funcionarios`
 --
 
-INSERT INTO `funcionarios` (`id`, `nome`, `email`, `senha`, `cargo`, `ativo`, `criado_em`, `cpf`, `telefone`) VALUES
-(7, 'Carlos', 'cb473355@gmail.com', '$2y$10$OdKb.W5eSZboKsyvcNDnW.vQnQS.yxQ2ZFVDw4dE.m2a0yNJV14N.', 'admin', 1, '2026-02-17 15:44:49', '47750673890', NULL);
+INSERT INTO `funcionarios` (`id`, `nome`, `email`, `senha`, `cargo`, `ativo`, `criado_em`, `cpf`, `telefone`, `email_verificado`, `email_codigo_hash`, `email_codigo_expira`) VALUES
+(9, 'Carlos', 'cb473355@gmail.com', '$2y$10$nkl8W723Qh2Vb072HPUKc.3l2k7Ihg5oxGqtpggJnXll9UqEXPcdq', 'admin', 1, '2026-02-18 15:27:41', '47750673890', NULL, 1, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -4504,31 +4504,31 @@ CREATE TABLE `livros` (
 --
 
 INSERT INTO `livros` (`id`, `titulo`, `autor`, `ano_publicacao`, `disponivel`, `criado_em`, `ISBN`, `capa_url`, `qtd_total`, `qtd_disp`, `categoria`, `sinopse`, `assuntos`, `editora`) VALUES
-(1, 'Frankenstein', 'Mary Shelley', 2023, 1, '2026-02-12 14:54:22', '9786580210343', 'https://covers.openlibrary.org/b/isbn/9786580210343-L.jpg', 2, 2, 0, '', 'Frankenstein (Fictitious character), Frankenstein\'s monster (Fictitious character), Fiction, Victor Frankenstein (Fictitious character), Scientists, Monsters, Fiction, horror, Frankenstein (fictitious character), fiction, Physicians, fiction, British fiction (fictional works by one author), Scientists, fiction, Geneva (Switzerland), fiction', 'Editora Antofágica'),
-(2, 'A invenção de Hugo Cabret', 'Brian Selznick, Marcos Bagno', 2007, 1, '2026-02-12 14:54:23', '9788576752035', 'https://covers.openlibrary.org/b/isbn/9788576752035-L.jpg', 2, 2, 0, 'Hugo Cabret é um menino órfão que vive escondido na central de trem de Paris dos anos 1930. Esgueirando-se por passagens secretas, Hugo cuida dos gigantescos relógios do lugar - escuta seus compassos, observa os enormes ponteiros e responsabiliza-se pelo funcionamento das máquinas. A sobrevivência de Hugo depende do anonimato - ele tenta se manter invisível porque guarda um incrível segredo, que é posto em risco quando o severo dono da loja de brinquedos da estação e sua afilhada cruzam o caminho do garoto. Um desenho enigmático, um caderno valioso, uma chave roubada e um homem mecânico estão no centro desta história, que, narrada por texto e imagens, procura misturar elementos dos quadrinhos e do cinema.', 'France', ''),
-(3, 'Origem', 'Dan Brown, Alves Calado', 2017, 1, '2026-02-12 14:54:24', '9788580417661', 'https://covers.openlibrary.org/b/isbn/9788580417661-L.jpg', 2, 2, 0, 'De onde viemos? Para onde vamos? Robert Langdon, o famoso professor de Simbologia de Harvard, chega ao ultramoderno Museu Guggenheim de Bilbao para assistir a uma apresentação sobre uma grande descoberta que promete \"mudar para sempre o papel da ciência\". O anfitrião da noite é o futurólogo bilionário Edmond Kirsch, de 40 anos, que se tornou conhecido mundialmente por suas previsões audaciosas e invenções de alta tecnologia. Um dos primeiros alunos de Langdon em Harvard, há 20 anos, agora ele está prestes a revelar uma incrível revolução no conhecimento... algo que vai responder a duas perguntas fundamentais da existência humana. Os convidados ficam hipnotizados pela apresentação, mas Langdon logo percebe que ela será muito mais controversa do que poderia imaginar. De repente, a noite meticulosamente orquestrada se transforma em um caos, e a preciosa descoberta de Kirsch corre o risco de ser perdida para sempre. Diante de uma ameaça iminente, Langdon tenta uma fuga desesperada de Bilbao ao lado de Ambra Vidal, a elegante diretora do museu que trabalhou na montagem do evento. Juntos seguem para Barcelona à procura de uma senha que ajudará a desvendar o segredo de Edmond Kirsch. Em meio a fatos históricos ocultos e extremismo religioso, Robert e Ambra precisam escapar de um inimigo atormentado cujo poder de saber tudo parece emanar do Palácio Real da Espanha. Alguém que não hesitará diante de nada para silenciar o futurólogo. Numa jornada marcada por obras de arte moderna e símbolos enigmáticos, os dois encontram pistas que vão deixá-los cara a cara com a chocante revelação de Kirsch... e com a verdade espantosa que ignoramos durante tanto tempo.', '', ''),
-(4, 'Magico de Oz', 'L. Frank Baum', 2013, 1, '2026-02-12 14:54:26', '9788537809662', 'https://covers.openlibrary.org/b/isbn/9788537809662-L.jpg', 2, 2, 0, '', 'Witches, Toy and movable books, Spanish language materials, Fiction, Wizards, Juvenile literature, Wizards in fiction, Children\'s stories, Russian, Specimens, Imaginary voyages in fiction, Classic Literature, Imaginary Voyages', 'Zahar'),
-(5, 'O lado bom da vida', 'Matthew Quick', 2013, 1, '2026-02-12 14:54:27', '9788580572773', 'https://covers.openlibrary.org/b/isbn/9788580572773-L.jpg', 2, 2, 0, 'Pat Peoples, um ex-professor de história na casa dos 30 anos, acaba de sair de uma instituição psiquiátrica. Convencido de que passou apenas alguns meses naquele “lugar ruim”, Pat não se lembra do que o fez ir para lá. O que sabe é que Nikki, sua esposa, quis que ficassem um \"tempo separados\". Tentando recompor o quebra-cabeças de sua memória, agora repleta de lapsos, ele ainda precisa enfrentar uma realidade que não parece muito promissora. Com seu pai se recusando a falar com ele, sua esposa negando-se a aceitar revê-lo e seus amigos evitando comentar o que aconteceu antes de sua internação, Pat, agora um viciado em exercícios físicos, está determinado a reorganizar as coisas e reconquistar sua mulher, porque acredita em finais felizes e no lado bom da vida. À medida que seu passado aos poucos ressurge em sua memória, Pat começa a entender que \"é melhor ser gentil que ter razão\" e faz dessa convicção sua meta. Tendo a seu lado o excêntrico (mas competente) psiquiatra Dr. Patel e Tiffany, a irmã viúva de seu melhor amigo, Pat descobrirá que nem todos os finais são felizes, mas que sempre vale a pena tentar mais uma vez. Um livro comovente sobre um homem que acredita na felicidade, no amor e na esperança.', 'Fiction', 'Editora Intríseca'),
-(6, 'Principios de administração financeira', 'Lawrence J. Gitman, ALLAN VIDIGAL HASTINGS', 2010, 1, '2026-02-12 14:54:28', '9788576053323', 'https://covers.openlibrary.org/b/isbn/9788576053323-L.jpg', 2, 2, 0, 'Em sintonia com as tendências no ramo da educação, esta edição traz as seções \'Em sua vida pessoal\', que mostra como os estudantes podem utilizar os tópicos apresentados nos capítulos em seu dia a dia, e \'Exemplo de finanças pessoais\', que demonstra como aplicar os conceitos, as ferramentas e as técnicas da administração financeira nas decisões financeiras pessoais. Outra novidade desta edição são os apêndices brasileiros, que complementam os principais tópicos tratados no livro, conferindo-lhes um caráter nacional. Entre outros assuntos, esses apêndices abordam o impacto da Lei Sarbanes-Oxley para as empresas brasileiras, os impactos da transição da contabilidade brasileira para o padrão IFRS e os aspectos de tributação das pessoas jurídicas no Brasil.', '', ''),
-(7, 'Os últimos dias de Krypton', 'Kevin J Anderson', 2013, 1, '2026-02-12 14:54:29', '9788544103340', 'https://covers.openlibrary.org/b/isbn/9788544103340-L.jpg', 2, 2, 0, 'Antes da calamidade que fez com que o pequeno Kal-El - Super-Homem - fosse enviado num foguete rumo a um futuro extraordinário em que viveria como herói, seu planeta natal, Krypton, prosperava. Antes da traição, da tecnologia e da natureza conspirarem para condenar uma civilização incomparável, os pais de Kal-El - o brilhante cientista Jor-El e a bela artista e historiadora Lara - se conheceram, se apaixonaram e se casaram. Houve grandes heróis naqueles dias tranquilos. Mas, claro, apareceram os vilões: o androide maligno Brainiac, que capturou a cidade de Kandor, e o diabólico General Zod, que usou de mentiras e do caos para tomar o poder e ascender à liderança em uma era de crueldade, repressão e terror.E, em meio a tudo isso, uma tragédia fatal se aproximava - um destino catastrófico profetizado por Jor-El, que mudaria a história kryptoniana para sempre, mas daria à Terra um dos maiores super-heróis de todos os tempos.', 'Comics & Graphic Novels', ''),
-(8, 'Livro sem Título', 'Maria Semple', 2026, 1, '2026-02-12 14:54:31', '9788535922936', 'https://covers.openlibrary.org/b/isbn/9788535922936-L.jpg', 2, 2, 0, '', '', ''),
-(9, 'Livro sem Título', 'Carlos Eduardo Morimoto', 2026, 1, '2026-02-12 14:54:32', '9788599593165', 'https://covers.openlibrary.org/b/isbn/9788599593165-L.jpg', 2, 2, 0, '', '', ''),
-(10, 'HTML e CSS', 'Paulo Henrique Santo Pedro', 2024, 1, '2026-02-12 14:54:33', '9788539648542', 'https://covers.openlibrary.org/b/isbn/9788539648542-L.jpg', 2, 2, 0, 'Apresentação 7 O que é a Série Informática 9 Estrutura do livro 9 Utilizando o material da Série Informática 9 O começo de tudo 11 Colocando computadores para “conversar” 13 HTML, a linguagem de marcação 14 Mas este livro também é sobre CSS? 15 Do Bloco de Notas ao Visual Studio Code (VS Code) 16 HTML 29 Vim do futuro, e nele você saberá “debugar” códigos! 31 O HTML 33 Atividade 1 – Meu primeiro site 34 Atividade 2 – Tudo organizado, por favor 37 Atividade 3 – Navegar é preciso, conectar é uma missão 42 Atividade 4 – Luz, câmera, ação! 57 Atividade 5 – Tabulando tabelas e outras coisas 72 CSS 83 Hierarquia de estilos: isso é importante! 85 Atividade 1 – Formate. Quem? Todos! 87 Atividade 2 – Nem tudo que tabela é tabela 114 Atividade 3 – A geografia do CSS 125 Atividade 4 – Forms 147 Atividade 5 – Eu me ajusto muito! Muito! 163', 'Computers', ''),
-(11, 'O andar do bêbado', 'Leonard Mlodinow', 2018, 1, '2026-02-12 14:54:35', '9788537818107', 'https://covers.openlibrary.org/b/isbn/9788537818107-L.jpg', 2, 2, 0, '', 'Probabilities, Chance, Random variables, Mathematics, Nonfiction, Science, Physics, Psychology, Sociology, nyt:hardcover-nonfiction=2008-06-29, New York Times bestseller, New York Times reviewed', 'Companhia das Letras'),
-(12, 'Empreendedorismo', 'Robert A. Baron, Scott A. Shane', 2007, 1, '2026-02-12 14:54:37', '9788522105335', 'https://covers.openlibrary.org/b/isbn/9788522105335-L.jpg', 2, 2, 0, 'Este livro apresenta uma visão única do empreendedorismo, ou seja, aquela do ponto de vista do processo, apresentando-o em suas diversas fases distintas. A obra trata o empreendedorismo como um processo contínuo e esse modelo é seguido de maneira consistente em todo o texto, fornecendo aos estudantes um modelo claro a seguir e fácil de compreender. Acessível e rico em exemplos, o texto une conceitos, teoria e pesquisa.', '', ''),
-(13, 'Livro sem Título', 'Djalma de Pinho Rebouças de Oliveira', 2026, 1, '2026-02-12 14:54:38', '9788597000696', 'https://covers.openlibrary.org/b/isbn/9788597000696-L.jpg', 2, 2, 0, '', '', ''),
-(14, 'Livro sem Título', 'Editora Manole', 2026, 1, '2026-02-12 14:54:40', '9788597026801', 'https://covers.openlibrary.org/b/isbn/9788597026801-L.jpg', 2, 2, 0, '', '', ''),
-(15, 'DIARIO DE UM BANANA, V.10 - BONS TEMPOS', 'JEFF KINNEY, ALEXANDRE BOIDE', 2015, 1, '2026-02-12 14:54:42', '9788576839422', 'https://covers.openlibrary.org/b/isbn/9788576839422-L.jpg', 1, 1, 0, 'script type=\"text/javascript\" function writeStandout(d){document.getElementById(\"standoutDiv\").innerHTML = \'iframe width=\"\'+((window.screen.width=960)?960:window.screen.width)+\'\" height=\"\'+parseInt(d.productHeight)+\'\" src=\"//www.standout.com.br/exclusivocultura/p/oroMjbxuLBI,/livro/diario-de-um-banana-10-bons-tempos\" frameborder=\"0\" allowfullscreen/iframe\';} if (window.jQuery){jQuery(document).ready(function(){jQuery.ajax({url:\"//www.standout.com.br/exclusivocultura/s/livro/diario-de-um-banana-10-bons-tempos\",dataType:\"jsonp\",crossDomain:true,jsonp:false,jsonpCallback:\"writeStandout\",timeout: 2000}).error(function(){writeStandout({productHeight: 2768});});});} else setTimeout(function () { writeStandout({productHeight: 2768}); }, 200); /script div id=\"standoutDiv\"/div', '', ''),
-(16, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-02-12 14:54:44', '9788502064355', 'https://covers.openlibrary.org/b/isbn/9788502064355-L.jpg', 1, 1, 0, '', '', 'Saraiva'),
-(17, 'Livro sem Título', 'Golias', 2026, 1, '2026-02-12 14:54:46', '1565489878964', 'https://covers.openlibrary.org/b/isbn/1565489878964-L.jpg', 2, 2, 0, '', '', ''),
-(18, 'Livro sem Título', 'davi', 2026, 1, '2026-02-12 14:54:48', '1565489878965', 'https://covers.openlibrary.org/b/isbn/1565489878965-L.jpg', 2, 2, 0, '', '', ''),
-(19, 'Livro sem Título', 'Rei Saul', 2026, 1, '2026-02-12 14:54:50', '1454565894564', 'https://covers.openlibrary.org/b/isbn/1454565894564-L.jpg', 2, 2, 0, '', '', ''),
-(20, 'O idiota', 'Фёдор Михайлович Достоевский', 2019, 1, '2026-02-12 14:54:52', '9788544001882', 'https://covers.openlibrary.org/b/isbn/9788544001882-L.jpg', 2, 1, 3345, 'O idiota é uma das obras mais comoventes de Fiódor Dostoiévski. Abstrusa para os contemporâneos do escritor, mas atual e compreensível para quem a conhecer em nossos dias, ela conta a história de um jovem aristocrata russo que se atreve a defender o sublime ideal humanista numa sociedade regida pelas leis do livre comércio. Ovelha negra da alta-roda de São Petersburgo, o príncipe Míchkin é tachado de idiota em virtude das suas qualidades morais e acaba perdendo de fato o juízo. Sua imagem de mártir e visionário, inspirada na do magnífico Dom Quixote de Cervantes, fica interiorizada pelo leitor; seu trágico fim leva-o a perguntar a si mesmo onde termina a loucura e começa a santidade do protagonista e, consequentemente, a repensar o próprio conceito daquilo que pode ser objeto de compra e venda no conturbado âmbito das relações humanas. Revisão técnica e notas da tradução por Oleg Almeida (escritor e tradutor bielorrusso).', 'Russia in fiction, Fiction, Social conditions, Social life and customs, Russian fiction, Translations into English, Russia, Classic Literature, Continental european fiction (fictional works by one author), Television adaptations, Idiot (Television program), English fiction', 'Martin Claret'),
-(21, 'Livro sem Título', 'Editora Manole', 2026, 1, '2026-02-12 14:54:53', '9788520438299', 'https://covers.openlibrary.org/b/isbn/9788520438299-L.jpg', 2, 2, 0, '', '', ''),
-(22, 'Livro sem Título', 'aaaa', 2026, 1, '2026-02-12 14:54:55', '7899987885859', 'https://covers.openlibrary.org/b/isbn/7899987885859-L.jpg', 2, 2, 0, '', '', ''),
-(23, '1984', 'George Orwell', 2020, 1, '2026-02-12 14:54:57', '9786587034201', 'https://covers.openlibrary.org/b/isbn/9786587034201-L.jpg', 2, 2, 3345, 'Nesta obra magistral, acompanhamos o drama de Winston Smith, um funcionário do Ministério da Verdade, parte do governo do superestado da Oceania ― que inclui as Américas, a Austrália, a Inglaterra e o sul da África.\r\n\r\nO estado totalitário comandado pela figura mítica do Grande Irmão controla todos os aspectos da vida de seus cidadãos. No entanto, Smith odeia secretamente o Partido e deseja se rebelar contra o sistema.\r\n\r\n1984 foi escolhido pela revista Time como um dos cem melhores romances de língua inglesa e garantiu seu lugar como um clássico da literatura moderna.\r\n\r\nA obra se afirma como uma valiosa reflexão sobre os malefícios do totalitarismo.', 'futurology, censorship, surveillance, rebels, sting operations, historical negationism, memory holes, thoughtcrime, Outer Party, resistance movements, Newspeak, perpetual war', 'Via Leitura'),
-(24, 'Harry Potter e as Reliquias da Morte - Edicao Comemorativa dos 20 anos da Colecao Harry Potter', 'J. K. Rowling', 2019, 1, '2026-02-12 14:54:58', '9788532531827', 'https://covers.openlibrary.org/b/isbn/9788532531827-L.jpg', 3, 3, 3446, 'Burdened with the dark, dangerous, and seemingly impossible task of locating and destroying Voldemort\'s remaining Horcruxes, Harry, feeling alone and uncertain about his future, struggles to find the inner strength he needs to follow the path set out before him.', 'England', 'Rocco'),
-(25, 'Crônicas de Nárnia - Volume Único, As', '', 2005, 1, '2026-02-13 14:24:59', '9788533622104', 'https://covers.openlibrary.org/b/isbn/9788533622104-L.jpg?default=false', 1, 1, 3345, '', '', 'Martins Fontes');
+(1, 'As crônicas de Nárnia', 'Clive Staples Lewis', 2005, 1, '2026-02-18 15:08:47', '9788533622104', 'https://covers.openlibrary.org/b/isbn/9788533622104-L.jpg', 1, 1, 0, 'Viagens ao fim do mundo, criaturas fantásticas e batalhas épicas entre o bem e o mal - o que mais um leitor poderia querer de um livro? O livro que tem tudo isso é \'O leão, a feiticeira e o guarda-roupa\', escrito em 1949 por Clive Staples Lewis. Mas Lewis não parou por aí. Seis outros livros vieram depois e, juntos, ficaram conhecidos como \'As crônicas de Nárnia\'. Nos últimos cinqüenta anos, \'As crônicas de Nárnia\' transcenderam o gênero da fantasia para se tornar parte do cânone da literatura clássica. Cada um dos sete livros é uma obra-prima, atraindo o leitor para um mundo em que a magia encontra a realidade, e o resultado é um mundo ficcional que tem fascinado gerações. Esta edição apresenta todas as sete crônicas integralmente, num único volume. Os livros são apresentados de acordo com a ordem de preferência de Lewis, cada capítulo com uma ilustração do artista original, Pauline Baynes. Enganosamente simples e direta, \'As crônicas de Nárnia\' continuam cativando os leitores com aventuras, personagens e fatos que falam a pessoas de todas as idades.', 'Children', ''),
+(2, 'Harry Potter e as relíquias da morte', 'J. K. Rowling', 2020, 1, '2026-02-18 15:08:48', '9788532531827', 'https://covers.openlibrary.org/b/isbn/9788532531827-L.jpg', 3, 3, 0, 'Burdened with the dark, dangerous, and seemingly impossible task of locating and destroying Voldemort\'s remaining Horcruxes, Harry, feeling alone and uncertain about his future, struggles to find the inner strength he needs to follow the path set out before him.', 'England', ''),
+(3, '1984', 'George Orwell', 2020, 1, '2026-02-18 15:08:51', '9786587034201', 'https://covers.openlibrary.org/b/isbn/9786587034201-L.jpg', 2, 2, 0, '', 'futurology, censorship, surveillance, rebels, sting operations, historical negationism, memory holes, thoughtcrime, Outer Party, resistance movements, Newspeak, perpetual war', 'Via Leitura'),
+(4, 'Livro sem Título', 'aaaa', 2026, 1, '2026-02-18 15:08:53', '7899987885859', 'https://covers.openlibrary.org/b/isbn/7899987885859-L.jpg', 2, 2, 0, '', '', ''),
+(5, 'Livro sem Título', 'Editora Manole', 2026, 1, '2026-02-18 15:08:54', '9788520438299', 'https://covers.openlibrary.org/b/isbn/9788520438299-L.jpg', 2, 2, 0, '', '', ''),
+(6, 'O idiota', 'Фёдор Михайлович Достоевский', 2019, 1, '2026-02-18 15:08:56', '9788544001882', 'https://covers.openlibrary.org/b/isbn/9788544001882-L.jpg', 2, 1, 0, '', 'Russia in fiction, Fiction, Social conditions, Social life and customs, Russian fiction, Translations into English, Russia, Classic Literature, Continental european fiction (fictional works by one author), Television adaptations, Idiot (Television program), English fiction', 'Martin Claret'),
+(7, 'Livro sem Título', 'Rei Saul', 2026, 1, '2026-02-18 15:08:58', '1454565894564', 'https://covers.openlibrary.org/b/isbn/1454565894564-L.jpg', 2, 2, 0, '', '', ''),
+(8, 'Livro sem Título', 'davi', 2026, 1, '2026-02-18 15:09:01', '1565489878965', 'https://covers.openlibrary.org/b/isbn/1565489878965-L.jpg', 2, 2, 0, '', '', ''),
+(9, 'Livro sem Título', 'Golias', 2026, 1, '2026-02-18 15:09:03', '1565489878964', 'https://covers.openlibrary.org/b/isbn/1565489878964-L.jpg', 2, 2, 0, '', '', ''),
+(10, 'Gestão de Vendas os 21 Segredos do Sucesso', 'Marcos Cobra', 2007, 1, '2026-02-18 15:09:05', '9788502064355', 'https://covers.openlibrary.org/b/isbn/9788502064355-L.jpg', 1, 1, 0, '', '', 'Saraiva'),
+(11, 'DIARIO DE UM BANANA, V.10 - BONS TEMPOS', 'JEFF KINNEY, ALEXANDRE BOIDE', 2015, 1, '2026-02-18 15:09:05', '9788576839422', 'https://covers.openlibrary.org/b/isbn/9788576839422-L.jpg', 1, 1, 0, 'script type=\"text/javascript\" function writeStandout(d){document.getElementById(\"standoutDiv\").innerHTML = \'iframe width=\"\'+((window.screen.width=960)?960:window.screen.width)+\'\" height=\"\'+parseInt(d.productHeight)+\'\" src=\"//www.standout.com.br/exclusivocultura/p/oroMjbxuLBI,/livro/diario-de-um-banana-10-bons-tempos\" frameborder=\"0\" allowfullscreen/iframe\';} if (window.jQuery){jQuery(document).ready(function(){jQuery.ajax({url:\"//www.standout.com.br/exclusivocultura/s/livro/diario-de-um-banana-10-bons-tempos\",dataType:\"jsonp\",crossDomain:true,jsonp:false,jsonpCallback:\"writeStandout\",timeout: 2000}).error(function(){writeStandout({productHeight: 2768});});});} else setTimeout(function () { writeStandout({productHeight: 2768}); }, 200); /script div id=\"standoutDiv\"/div', '', ''),
+(12, 'Livro sem Título', 'Editora Manole', 2026, 1, '2026-02-18 15:09:07', '9788597026801', 'https://covers.openlibrary.org/b/isbn/9788597026801-L.jpg', 2, 2, 0, '', '', ''),
+(13, 'Livro sem Título', 'Djalma de Pinho Rebouças de Oliveira', 2026, 1, '2026-02-18 15:09:10', '9788597000696', 'https://covers.openlibrary.org/b/isbn/9788597000696-L.jpg', 2, 2, 0, '', '', ''),
+(14, 'Empreendedorismo', 'Robert A. Baron, Scott A. Shane', 2007, 1, '2026-02-18 15:09:11', '9788522105335', 'https://covers.openlibrary.org/b/isbn/9788522105335-L.jpg', 2, 2, 0, 'Este livro apresenta uma visão única do empreendedorismo, ou seja, aquela do ponto de vista do processo, apresentando-o em suas diversas fases distintas. A obra trata o empreendedorismo como um processo contínuo e esse modelo é seguido de maneira consistente em todo o texto, fornecendo aos estudantes um modelo claro a seguir e fácil de compreender. Acessível e rico em exemplos, o texto une conceitos, teoria e pesquisa.', '', ''),
+(15, 'O andar do bêbado', 'Leonard Mlodinow', 2018, 1, '2026-02-18 15:09:13', '9788537818107', 'https://covers.openlibrary.org/b/isbn/9788537818107-L.jpg', 2, 2, 0, '', 'Probabilities, Chance, Random variables, Mathematics, Nonfiction, Science, Physics, Psychology, Sociology, nyt:hardcover-nonfiction=2008-06-29, New York Times bestseller, New York Times reviewed', 'Companhia das Letras'),
+(16, 'HTML e CSS', 'Paulo Henrique Santo Pedro', 2024, 1, '2026-02-18 15:09:15', '9788539648542', 'https://covers.openlibrary.org/b/isbn/9788539648542-L.jpg', 2, 2, 0, 'Apresentação 7 O que é a Série Informática 9 Estrutura do livro 9 Utilizando o material da Série Informática 9 O começo de tudo 11 Colocando computadores para “conversar” 13 HTML, a linguagem de marcação 14 Mas este livro também é sobre CSS? 15 Do Bloco de Notas ao Visual Studio Code (VS Code) 16 HTML 29 Vim do futuro, e nele você saberá “debugar” códigos! 31 O HTML 33 Atividade 1 – Meu primeiro site 34 Atividade 2 – Tudo organizado, por favor 37 Atividade 3 – Navegar é preciso, conectar é uma missão 42 Atividade 4 – Luz, câmera, ação! 57 Atividade 5 – Tabulando tabelas e outras coisas 72 CSS 83 Hierarquia de estilos: isso é importante! 85 Atividade 1 – Formate. Quem? Todos! 87 Atividade 2 – Nem tudo que tabela é tabela 114 Atividade 3 – A geografia do CSS 125 Atividade 4 – Forms 147 Atividade 5 – Eu me ajusto muito! Muito! 163', 'Computers', ''),
+(17, 'Livro sem Título', 'Carlos Eduardo Morimoto', 2026, 1, '2026-02-18 15:09:16', '9788599593165', 'https://covers.openlibrary.org/b/isbn/9788599593165-L.jpg', 2, 2, 0, '', '', ''),
+(18, 'Livro sem Título', 'Maria Semple', 2026, 1, '2026-02-18 15:09:18', '9788535922936', 'https://covers.openlibrary.org/b/isbn/9788535922936-L.jpg', 2, 2, 0, '', '', ''),
+(19, 'Os últimos dias de Krypton', 'Kevin J Anderson', 2013, 1, '2026-02-18 15:09:19', '9788544103340', 'https://covers.openlibrary.org/b/isbn/9788544103340-L.jpg', 2, 2, 0, 'Antes da calamidade que fez com que o pequeno Kal-El - Super-Homem - fosse enviado num foguete rumo a um futuro extraordinário em que viveria como herói, seu planeta natal, Krypton, prosperava. Antes da traição, da tecnologia e da natureza conspirarem para condenar uma civilização incomparável, os pais de Kal-El - o brilhante cientista Jor-El e a bela artista e historiadora Lara - se conheceram, se apaixonaram e se casaram. Houve grandes heróis naqueles dias tranquilos. Mas, claro, apareceram os vilões: o androide maligno Brainiac, que capturou a cidade de Kandor, e o diabólico General Zod, que usou de mentiras e do caos para tomar o poder e ascender à liderança em uma era de crueldade, repressão e terror.E, em meio a tudo isso, uma tragédia fatal se aproximava - um destino catastrófico profetizado por Jor-El, que mudaria a história kryptoniana para sempre, mas daria à Terra um dos maiores super-heróis de todos os tempos.', 'Comics & Graphic Novels', ''),
+(20, 'Principios de administração financeira', 'Lawrence J. Gitman, ALLAN VIDIGAL HASTINGS', 2010, 1, '2026-02-18 15:09:19', '9788576053323', 'https://covers.openlibrary.org/b/isbn/9788576053323-L.jpg', 2, 2, 0, 'Em sintonia com as tendências no ramo da educação, esta edição traz as seções \'Em sua vida pessoal\', que mostra como os estudantes podem utilizar os tópicos apresentados nos capítulos em seu dia a dia, e \'Exemplo de finanças pessoais\', que demonstra como aplicar os conceitos, as ferramentas e as técnicas da administração financeira nas decisões financeiras pessoais. Outra novidade desta edição são os apêndices brasileiros, que complementam os principais tópicos tratados no livro, conferindo-lhes um caráter nacional. Entre outros assuntos, esses apêndices abordam o impacto da Lei Sarbanes-Oxley para as empresas brasileiras, os impactos da transição da contabilidade brasileira para o padrão IFRS e os aspectos de tributação das pessoas jurídicas no Brasil.', '', ''),
+(21, 'O lado bom da vida', 'Matthew Quick', 2013, 1, '2026-02-18 15:09:20', '9788580572773', 'https://covers.openlibrary.org/b/isbn/9788580572773-L.jpg', 2, 2, 0, 'Pat Peoples, um ex-professor de história na casa dos 30 anos, acaba de sair de uma instituição psiquiátrica. Convencido de que passou apenas alguns meses naquele “lugar ruim”, Pat não se lembra do que o fez ir para lá. O que sabe é que Nikki, sua esposa, quis que ficassem um \"tempo separados\". Tentando recompor o quebra-cabeças de sua memória, agora repleta de lapsos, ele ainda precisa enfrentar uma realidade que não parece muito promissora. Com seu pai se recusando a falar com ele, sua esposa negando-se a aceitar revê-lo e seus amigos evitando comentar o que aconteceu antes de sua internação, Pat, agora um viciado em exercícios físicos, está determinado a reorganizar as coisas e reconquistar sua mulher, porque acredita em finais felizes e no lado bom da vida. À medida que seu passado aos poucos ressurge em sua memória, Pat começa a entender que \"é melhor ser gentil que ter razão\" e faz dessa convicção sua meta. Tendo a seu lado o excêntrico (mas competente) psiquiatra Dr. Patel e Tiffany, a irmã viúva de seu melhor amigo, Pat descobrirá que nem todos os finais são felizes, mas que sempre vale a pena tentar mais uma vez. Um livro comovente sobre um homem que acredita na felicidade, no amor e na esperança.', 'Fiction', 'Editora Intríseca'),
+(22, 'Magico de Oz', 'L. Frank Baum', 2013, 1, '2026-02-18 15:09:22', '9788537809662', 'https://covers.openlibrary.org/b/isbn/9788537809662-L.jpg', 2, 2, 0, '', 'Witches, Toy and movable books, Spanish language materials, Fiction, Wizards, Juvenile literature, Wizards in fiction, Children\'s stories, Russian, Specimens, Imaginary voyages in fiction, Classic Literature, Imaginary Voyages', 'Zahar'),
+(23, 'Origem', 'Dan Brown, Alves Calado', 2017, 1, '2026-02-18 15:09:23', '9788580417661', 'https://covers.openlibrary.org/b/isbn/9788580417661-L.jpg', 2, 2, 0, 'De onde viemos? Para onde vamos? Robert Langdon, o famoso professor de Simbologia de Harvard, chega ao ultramoderno Museu Guggenheim de Bilbao para assistir a uma apresentação sobre uma grande descoberta que promete \"mudar para sempre o papel da ciência\". O anfitrião da noite é o futurólogo bilionário Edmond Kirsch, de 40 anos, que se tornou conhecido mundialmente por suas previsões audaciosas e invenções de alta tecnologia. Um dos primeiros alunos de Langdon em Harvard, há 20 anos, agora ele está prestes a revelar uma incrível revolução no conhecimento... algo que vai responder a duas perguntas fundamentais da existência humana. Os convidados ficam hipnotizados pela apresentação, mas Langdon logo percebe que ela será muito mais controversa do que poderia imaginar. De repente, a noite meticulosamente orquestrada se transforma em um caos, e a preciosa descoberta de Kirsch corre o risco de ser perdida para sempre. Diante de uma ameaça iminente, Langdon tenta uma fuga desesperada de Bilbao ao lado de Ambra Vidal, a elegante diretora do museu que trabalhou na montagem do evento. Juntos seguem para Barcelona à procura de uma senha que ajudará a desvendar o segredo de Edmond Kirsch. Em meio a fatos históricos ocultos e extremismo religioso, Robert e Ambra precisam escapar de um inimigo atormentado cujo poder de saber tudo parece emanar do Palácio Real da Espanha. Alguém que não hesitará diante de nada para silenciar o futurólogo. Numa jornada marcada por obras de arte moderna e símbolos enigmáticos, os dois encontram pistas que vão deixá-los cara a cara com a chocante revelação de Kirsch... e com a verdade espantosa que ignoramos durante tanto tempo.', '', ''),
+(24, 'A invenção de Hugo Cabret', 'Brian Selznick, Marcos Bagno', 2007, 1, '2026-02-18 15:09:23', '9788576752035', 'https://covers.openlibrary.org/b/isbn/9788576752035-L.jpg', 2, 2, 0, 'Hugo Cabret é um menino órfão que vive escondido na central de trem de Paris dos anos 1930. Esgueirando-se por passagens secretas, Hugo cuida dos gigantescos relógios do lugar - escuta seus compassos, observa os enormes ponteiros e responsabiliza-se pelo funcionamento das máquinas. A sobrevivência de Hugo depende do anonimato - ele tenta se manter invisível porque guarda um incrível segredo, que é posto em risco quando o severo dono da loja de brinquedos da estação e sua afilhada cruzam o caminho do garoto. Um desenho enigmático, um caderno valioso, uma chave roubada e um homem mecânico estão no centro desta história, que, narrada por texto e imagens, procura misturar elementos dos quadrinhos e do cinema.', 'France', ''),
+(25, 'Frankenstein', 'Mary Shelley', 2023, 1, '2026-02-18 15:09:25', '9786580210343', 'https://covers.openlibrary.org/b/isbn/9786580210343-L.jpg', 2, 2, 0, '', 'Frankenstein (Fictitious character), Frankenstein\'s monster (Fictitious character), Fiction, Victor Frankenstein (Fictitious character), Scientists, Monsters, Fiction, horror, Frankenstein (fictitious character), fiction, Physicians, fiction, British fiction (fictional works by one author), Scientists, fiction, Geneva (Switzerland), fiction', 'Editora Antofágica');
 
 -- --------------------------------------------------------
 
@@ -4552,17 +4552,16 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nome`, `email`, `telefone`, `criado_em`, `perfil`, `cpf`, `ativo`) VALUES
-(1, 'Carlos Eduardo', 'teste@gmail.com', '', '2026-01-29 13:38:22', 'admin', '', 1),
-(5, 'Carlos', NULL, '', '2026-01-29 13:43:45', 'leitor', '48949849864', 1),
-(15, 'jaiminho', NULL, '', '2026-02-04 14:14:56', 'leitor', '56498798468', 1),
-(16, 'marquinhosaa', NULL, '', '2026-02-04 14:24:36', 'leitor', '15489496849', 1),
-(17, 'aaaaa', 'teste33@gmail.com', '15998533336', '2026-02-04 14:25:13', 'leitor', '15486874968', 0),
-(18, 'Joao Do Grau', 'gustavo2@teste.com', '15996292845', '2026-02-06 11:30:16', 'leitor', '16516546546', 1),
-(19, 'aaaaaaaaaaaaaaaaa', NULL, '', '2026-02-09 11:35:01', 'leitor', '156.565.456-55', 0),
-(20, 'Marcos', 'marcosteste@gmail.com', '', '2026-02-11 14:45:23', 'leitor', '51623580805', 1),
-(21, 'aaaa', NULL, NULL, '2026-02-12 14:11:11', 'leitor', '156.498.764-69', 0),
-(22, 'aaaaaaaaa', NULL, NULL, '2026-02-12 14:13:46', 'leitor', '313.216.546-87', 1),
-(23, 'julia', NULL, NULL, '2026-02-13 13:12:30', 'leitor', '687.914.896-89', 1);
+(1, 'aaaa', NULL, '', '2026-02-18 15:09:50', 'leitor', '15649876469', 0),
+(2, 'aaaaa', 'teste33@gmail.com', '15998533336', '2026-02-18 15:09:50', 'leitor', '15486874968', 0),
+(3, 'aaaaaaaaa', NULL, '', '2026-02-18 15:09:50', 'leitor', '31321654687', 1),
+(4, 'aaaaaaaaaaaaaaaaa', NULL, '', '2026-02-18 15:09:50', 'leitor', '15656545655', 0),
+(5, 'Carlos', NULL, '', '2026-02-18 15:09:50', 'leitor', '48949849864', 1),
+(6, 'jaiminho', NULL, '', '2026-02-18 15:09:50', 'leitor', '56498798468', 1),
+(7, 'Joao Do Grau', 'gustavo2@teste.com', '15996292845', '2026-02-18 15:09:50', 'leitor', '16516546546', 1),
+(8, 'julia', NULL, '', '2026-02-18 15:09:50', 'leitor', '68791489689', 1),
+(9, 'Marcos', 'marcosteste@gmail.com', '', '2026-02-18 15:09:50', 'leitor', '51623580805', 1),
+(10, 'marquinhosaa', NULL, '', '2026-02-18 15:09:50', 'leitor', '15489496849', 1);
 
 --
 -- Índices para tabelas despejadas
@@ -4604,7 +4603,8 @@ ALTER TABLE `funcionarios`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`),
   ADD UNIQUE KEY `ux_funcionarios_email` (`email`),
-  ADD UNIQUE KEY `ux_funcionarios_cpf` (`cpf`);
+  ADD UNIQUE KEY `ux_funcionarios_cpf` (`cpf`),
+  ADD KEY `idx_func_email_codigo_hash` (`email_codigo_hash`);
 
 --
 -- Índices de tabela `livros`
@@ -4640,19 +4640,19 @@ ALTER TABLE `cdd_keywords`
 -- AUTO_INCREMENT de tabela `emprestimos`
 --
 ALTER TABLE `emprestimos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT de tabela `emprestimo_itens`
 --
 ALTER TABLE `emprestimo_itens`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT de tabela `funcionarios`
 --
 ALTER TABLE `funcionarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de tabela `livros`
@@ -4664,7 +4664,7 @@ ALTER TABLE `livros`
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Restrições para tabelas despejadas

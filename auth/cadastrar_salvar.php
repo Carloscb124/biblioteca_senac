@@ -1,13 +1,20 @@
 <?php
 // auth/cadastrar_salvar.php
+// - Primeiro cadastro cria ADMIN
+// - Depois disso, só ADMIN cadastra (cria BIBLIOTECARIO)
+// - Envia código de 6 dígitos por email para confirmar antes de logar
+
 include("../conexao.php");
 include("../includes/flash.php");
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-/* =========================================================
-   DOMÍNIOS PERMITIDOS (os mais comuns)
-========================================================= */
+/* =========================
+   CONFIG
+========================= */
+$base = "/biblioteca_senac";
+
+// provedores permitidos
 $ALLOWED_DOMAINS = [
   "gmail.com",
   "outlook.com",
@@ -19,6 +26,12 @@ $ALLOWED_DOMAINS = [
   "protonmail.com"
 ];
 
+// código expira em 15 minutos
+$CODIGO_MINUTOS = 15;
+
+/* =========================
+   HELPERS
+========================= */
 function email_domain(string $email): string {
   $email = trim(strtolower($email));
   $pos = strrpos($email, "@");
@@ -30,23 +43,49 @@ function only_digits(string $v): string {
   return preg_replace('/\D+/', '', $v);
 }
 
-// Dados
+function normalize_email(string $email): string {
+  // trim + lower + remove espaços acidentais
+  $email = strtolower(trim($email));
+  $email = preg_replace('/\s+/', '', $email);
+  return $email;
+}
+
+function send_code_email(string $to, string $nome, string $codigo): bool {
+  $subject = "Código de confirmação - Biblioteca";
+  $nomeSafe = trim($nome) !== "" ? $nome : "usuário";
+
+  $message  = "Olá, {$nomeSafe}!\n\n";
+  $message .= "Seu código de confirmação é: {$codigo}\n\n";
+  $message .= "Ele expira em 15 minutos.\n\n";
+  $message .= "Se você não solicitou isso, ignore esta mensagem.\n";
+
+  $headers  = "From: Biblioteca <no-reply@biblioteca.local>\r\n";
+  $headers .= "Reply-To: no-reply@biblioteca.local\r\n";
+  $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+  return @mail($to, $subject, $message, $headers);
+}
+
+/* =========================
+   DADOS DO FORM
+========================= */
 $nome  = trim($_POST["nome"] ?? "");
-$email = trim($_POST["email"] ?? "");
+$email = normalize_email($_POST["email"] ?? "");
 $senha = (string)($_POST["senha"] ?? "");
 $cpf   = trim($_POST["cpf"] ?? "");
 
-$emailLower = strtolower($email);
-$cpfDigits = only_digits($cpf);
-
-// Repopular (pra manter preenchido se der erro)
+// repopular caso dê erro
 $_SESSION["old_auth"] = [
   "nome"  => $nome,
   "email" => $email,
   "cpf"   => $cpf,
 ];
 
-// Validações básicas
+/* =========================
+   VALIDAÇÕES
+========================= */
+$cpfDigits = only_digits($cpf);
+
 if ($nome === "" || $email === "" || $senha === "" || $cpfDigits === "") {
   flash_set("danger", "Preencha nome, email, CPF e senha.");
   header("Location: cadastrar.php");
@@ -59,39 +98,35 @@ if (strlen($senha) < 6) {
   exit;
 }
 
-// CPF: 11 dígitos
 if (strlen($cpfDigits) !== 11) {
   flash_set("danger", "CPF inválido. Informe 11 dígitos.");
   header("Location: cadastrar.php");
   exit;
 }
 
-// 1) valida formato do email
-if (!filter_var($emailLower, FILTER_VALIDATE_EMAIL)) {
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   flash_set("danger", "Email inválido.");
   header("Location: cadastrar.php");
   exit;
 }
 
-// 2) valida domínio permitido
-$dom = email_domain($emailLower);
+// domínio permitido
+$dom = email_domain($email);
 if ($dom === "" || !in_array($dom, $ALLOWED_DOMAINS, true)) {
-  flash_set("danger", "Use um email válido (Gmail, Outlook, Hotmail, Yahoo, iCloud, Live...).");
+  flash_set("danger", "Use um email válido (Gmail, Outlook, Hotmail, Yahoo, iCloud, Live, Proton...).");
   header("Location: cadastrar.php");
   exit;
 }
 
-// Verifica se já existe algum funcionário no sistema
+/* =========================
+   REGRA DO PRIMEIRO CADASTRO
+========================= */
 $hasAny = false;
 $res = mysqli_query($conn, "SELECT 1 FROM funcionarios LIMIT 1");
 if ($res && mysqli_fetch_row($res)) $hasAny = true;
 
-/*
-  Regra do seu sistema:
-  - Se NÃO existe ninguém: permite criar o ADMIN inicial
-  - Se JÁ existe: só ADMIN logado pode criar outros (e cria BIBLIOTECARIO)
-*/
 if ($hasAny) {
+  // se já existe alguém, só ADMIN pode cadastrar
   require_once(__DIR__ . "/auth_guard.php");
   require_admin();
   $cargo = "BIBLIOTECARIO";
@@ -99,53 +134,69 @@ if ($hasAny) {
   $cargo = "ADMIN";
 }
 
-// Email único
+/* =========================
+   DUPLICADOS
+========================= */
 $chkEmail = mysqli_prepare($conn, "SELECT 1 FROM funcionarios WHERE email = ? LIMIT 1");
-mysqli_stmt_bind_param($chkEmail, "s", $emailLower);
+mysqli_stmt_bind_param($chkEmail, "s", $email);
 mysqli_stmt_execute($chkEmail);
 $rEmail = mysqli_stmt_get_result($chkEmail);
-
 if ($rEmail && mysqli_fetch_row($rEmail)) {
   flash_set("warning", "Esse email já está cadastrado.");
   header("Location: cadastrar.php");
   exit;
 }
 
-// CPF único
 $chkCpf = mysqli_prepare($conn, "SELECT 1 FROM funcionarios WHERE cpf = ? LIMIT 1");
 mysqli_stmt_bind_param($chkCpf, "s", $cpfDigits);
 mysqli_stmt_execute($chkCpf);
 $rCpf = mysqli_stmt_get_result($chkCpf);
-
 if ($rCpf && mysqli_fetch_row($rCpf)) {
   flash_set("warning", "Esse CPF já está cadastrado.");
   header("Location: cadastrar.php");
   exit;
 }
 
-// Hash de senha
+/* =========================
+   GERA CÓDIGO + INSERE
+========================= */
+// senha
 $hash = password_hash($senha, PASSWORD_DEFAULT);
 
-// Insert (agora com CPF)
+// código de 6 dígitos
+$codigo = (string)random_int(100000, 999999);
+$codigoHash = hash("sha256", $codigo);
+
+// expiração
+$expira = (new DateTime())->modify("+{$CODIGO_MINUTOS} minutes")->format("Y-m-d H:i:s");
+
+// insert com email_verificado=0 e código armazenado como hash
 $stmt = mysqli_prepare($conn, "
-  INSERT INTO funcionarios (nome, email, cpf, senha, cargo, ativo)
-  VALUES (?, ?, ?, ?, ?, 1)
+  INSERT INTO funcionarios (nome, email, cpf, senha, cargo, ativo, email_verificado, email_codigo_hash, email_codigo_expira)
+  VALUES (?, ?, ?, ?, ?, 1, 0, ?, ?)
 ");
-mysqli_stmt_bind_param($stmt, "sssss", $nome, $emailLower, $cpfDigits, $hash, $cargo);
+mysqli_stmt_bind_param($stmt, "sssssss", $nome, $email, $cpfDigits, $hash, $cargo, $codigoHash, $expira);
 
 if (!mysqli_stmt_execute($stmt)) {
-  // se por algum motivo bater em UNIQUE no banco:
   $errno = mysqli_errno($conn);
-  if ($errno === 1062) {
-    flash_set("warning", "Email ou CPF já cadastrado.");
-  } else {
-    flash_set("danger", "Erro ao cadastrar. Tente novamente.");
-  }
+  if ($errno === 1062) flash_set("warning", "Email ou CPF já cadastrado.");
+  else flash_set("danger", "Erro ao cadastrar. Tente novamente.");
   header("Location: cadastrar.php");
   exit;
 }
 
+// tenta enviar e-mail com o código
+$ok = send_code_email($email, $nome, $codigo);
+
 unset($_SESSION["old_auth"]);
-flash_set("success", "Cadastro realizado! Agora você pode entrar.");
-header("Location: login.php");
+
+// se mail() falhar (XAMPP comum), a gente mostra o código pra teste
+if ($ok) {
+  flash_set("success", "Cadastro criado! Enviamos um código de confirmação no seu email.");
+} else {
+  flash_set("warning", "Cadastro criado, mas não consegui enviar email (SMTP). Código para teste: {$codigo}");
+}
+
+// manda pra tela de confirmação
+header("Location: confirmar_email.php?email=" . urlencode($email));
 exit;
