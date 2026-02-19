@@ -1,163 +1,156 @@
-# 📚 Sistema de Gestão de Biblioteca
+# 📚 Biblioteca SENAC
 
-Sistema web para **gestão de acervo, usuários, empréstimos e relatórios de uma biblioteca**, desenvolvido em **PHP**, **MySQL** e **Bootstrap**.
+Sistema web de gerenciamento de biblioteca desenvolvido em PHP + MySQL para controle de acervo, empréstimos, usuários e administração interna.
 
-Projeto desenvolvido no **SENAC**, estruturado também para **portfólio profissional**, com foco em organização de código, usabilidade e visual limpo.
+## 🎥 Demonstração
 
----
-
-## 🖥️ Demonstração do Sistema
-
-> Tela real do sistema em funcionamento:
-
-![Sistema de Biblioteca](image.png)
+![Demo do sistema](demo.gif)
 
 ---
 
-## 🧠 Funcionalidades
+## 🚀 Funcionalidades
 
-### 📖 Acervo
-- Cadastro, edição e exclusão de livros  
-- Controle de disponibilidade  
-- Listagem organizada em tabela  
-
-### 👥 Usuários
-- Cadastro e gerenciamento de usuários  
-- Perfis de acesso (Admin / Leitor)  
-- Listagem clara e objetiva  
+### 📖 Livros
+- Cadastro e edição de livros
+- Busca por ISBN
+- Classificação CDD
+- Sinopse, editora e assuntos
+- Controle de quantidade total e disponível
+- Marcar item como perdido
+- Ativar/desativar livros
 
 ### 🔄 Empréstimos
-- Registro de empréstimos  
-- Data prevista de devolução  
-- Identificação automática de atrasos  
-- Status visual:
-  - 🟦 Aberto
-  - 🟩 Devolvido
-  - 🟥 Atrasado
+- Cadastro de empréstimos
+- Devolução e renovação
+- Marcar item como perdido
+- Controle de status
+- Histórico de movimentações
 
-### 📊 Relatórios
-- Painel com indicadores (KPIs)  
-- Livros mais emprestados  
-- Empréstimos por período  
-- Empréstimos em atraso  
-- Histórico por usuário  
-- Gráficos interativos  
+### 🔄 Relatorios
+- Ultimos dados de livros/usuarios
+- Livros mais Emprestados/perdidos
+- Exportação e Importação de dados 
+
+
+### 👥 Usuários e Funcionários
+- Login e autenticação
+- Cadastro de funcionários
+- Reset de senha
+- Ativação/desativação
+
+### 📧 E-mails (SMTP)
+O sistema usa SMTP para envio de e-mails (confirmação, recuperação de senha, etc).
+
+Arquivo de configuração:
+```
+includes/mailer.php
+```
+
+Exemplo (Gmail SMTP):
+```php
+$mail->isSMTP();
+$mail->Host       = 'smtp.gmail.com';
+$mail->SMTPAuth   = true;
+$mail->Username   = 'seu_email@gmail.com';
+$mail->Password   = 'senha_de_app';
+$mail->SMTPSecure = 'tls';
+$mail->Port       = 587;
+```
+
+⚠️ Use senha de app e nunca suba credenciais reais para o GitHub.
 
 ---
 
-## 🎨 Interface e Design
+## 🧠 Tecnologias
 
-- Layout responsivo com **Bootstrap 5**  
-- Tema visual próprio (verde e bege)  
-- Dashboard com cards e gráficos  
-- CSS **modularizado** para facilitar manutenção  
-- Componentes reutilizáveis (tabelas, badges, botões)  
+- PHP
+- MySQL
+- HTML, CSS, JavaScript
+- Bootstrap
+- XAMPP (ambiente local)
 
 ---
 
-## 🧩 Estrutura do Projeto
+## 🗂 Estrutura do Projeto
 
-```text
+```
 biblioteca_senac/
-│
-├── assets/
-|   └── reader.png
-│   └── css/
-│       ├── base.css
-│       ├── layout.css
-│       ├── header.css
-│       ├── footer.css
-│       ├── tables.css
-│       ├── forms.css
-│       ├── components.css
-│       ├── dashboard.css
-│       ├── reports.css
-│       ├── hero.css
-│       ├── responsive.css
-│       └── style.css
-|     
-│
-├── includes/
-│   ├── header.php
-│   ├── footer.php
-│   └── flash.php
-│
+├── auth/
 ├── livros/
-├── usuarios/
 ├── emprestimos/
+├── funcionarios/
+├── includes/
+├── database/
+├── assets/
 ├── relatorios/
-│
+├── usuarios/
 ├── conexao.php
 ├── index.php
-├── image.png
-└── README.md
+└── demo.gif
 ```
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## ⚙️ Instalação (passo a passo)
 
-- PHP 8+
-- MySQL
-- Bootstrap 5
-- Bootstrap Icons
-- Chart.js
-- HTML5 / CSS3
-- JavaScript
+### 1) Instalar o ambiente
+1. Instale o **XAMPP**.
+2. Abra o painel do XAMPP e inicie:
+   - Apache
+   - MySQL
 
----
+### 2) Copiar o projeto
+1. Extraia ou clone o projeto.
+2. Coloque a pasta dentro de:
+```
+C:\xampp\htdocs\
+```
 
-## 🚀 Como executar o projeto
+### 3) Criar o banco de dados
+1. Acesse:
+```
+http://localhost/phpmyadmin
+```
+2. Crie um banco chamado:
+```
+biblioteca_senac
+```
+3. Importe o arquivo:
+```
+database/biblioteca_senac.sql
+```
 
-### Pré-requisitos
-- XAMPP (ou similar)
-- PHP 8+
-- MySQL
-- Navegador moderno
+### 4) Configurar conexão com o banco
+Abra o arquivo:
+```
+conexao.php
+```
 
-### Passos
+Exemplo:
+```php
+$conn = mysqli_connect("localhost", "root", "", "biblioteca_senac");
+```
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/Carloscb124/biblioteca_senac.git
-   ```
-
-2. Mova o projeto para a pasta do servidor (XAMPP):
-   ```text
-   C:\xampp\htdocs\biblioteca_senac
-   ```
-
-3. Crie o banco de dados no MySQL (ex: `biblioteca_senac`) e importe o SQL
-
-4. Configure a conexão em:
-   ```php
-   // conexao.php (na raiz do projeto)
-   ```
-
-5. Acesse no navegador:
-   ```text
-   http://localhost/biblioteca_senac
-   ```
-
----
-
-## 📌 Status do Projeto
-
-- ✔️ Funcional  
-- 🚧 Em desenvolvimento contínuo  
+### 5) Rodar o sistema
+Abra no navegador:
+```
+http://localhost/biblioteca_senac
+```
 
 ---
 
-## 🔮 Melhorias Futuras
+## 🧪 Dicas rápidas de uso
 
-- Sistema de login com autenticação  
-- Controle de permissões por perfil  
-- Exportação de relatórios (PDF / Excel)  
-- Filtros avançados e paginação  
-- Histórico de ações do sistema  
+- Cadastre livros primeiro.
+- Depois cadastre leitores/funcionários.
+- Faça empréstimos e acompanhe pelo dashboard.
+- Itens perdidos atualizam o acervo automaticamente.
 
 ---
 
 ## 👨‍💻 Autor
 
-**Carlos Eduardo**
+Carlos — estudante de TI e desenvolvimento web.
+
+---
+

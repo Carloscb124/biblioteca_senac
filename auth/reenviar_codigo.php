@@ -1,9 +1,10 @@
 <?php
 // auth/reenviar_codigo.php
-// Reenvia um novo código (com throttle simples por sessão)
+// Reenvia um novo código usando SMTP (PHPMailer) + throttle simples por sessão
 
 include("../conexao.php");
 include("../includes/flash.php");
+include("../includes/mailer.php"); // ✅ usa mailer_send_code()
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -13,19 +14,6 @@ function normalize_email(string $email): string {
   return $email;
 }
 
-function send_code_email(string $to, string $nome, string $codigo): bool {
-  $subject = "Seu novo código - Biblioteca";
-
-  $message  = "Olá, {$nome}!\n\n";
-  $message .= "Seu novo código de confirmação é: {$codigo}\n\n";
-  $message .= "Ele expira em 15 minutos.\n";
-
-  $headers  = "From: Biblioteca <no-reply@biblioteca.local>\r\n";
-  $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-
-  return @mail($to, $subject, $message, $headers);
-}
-
 $email = normalize_email($_GET["email"] ?? "");
 if ($email === "") {
   flash_set("danger", "Email inválido.");
@@ -33,7 +21,9 @@ if ($email === "") {
   exit;
 }
 
-// throttle: 1 envio a cada 30 segundos por sessão (pra não virar metralhadora)
+/* =========================
+   Throttle: 1 envio a cada 30s por sessão
+========================= */
 $last = (int)($_SESSION["last_resend_code_ts"] ?? 0);
 if ($last > 0 && (time() - $last) < 30) {
   flash_set("warning", "Calma aí, chefia. Espera uns segundos e tenta de novo.");
@@ -41,7 +31,9 @@ if ($last > 0 && (time() - $last) < 30) {
   exit;
 }
 
-// busca funcionário
+/* =========================
+   Busca funcionário ativo
+========================= */
 $stmt = mysqli_prepare($conn, "
   SELECT id, nome, email_verificado
   FROM funcionarios
@@ -59,18 +51,21 @@ if (!$f) {
   exit;
 }
 
-if ((int)$f["email_verificado"] === 1) {
+if ((int)($f["email_verificado"] ?? 0) === 1) {
   flash_set("success", "Seu email já está confirmado. Pode entrar.");
   header("Location: login.php");
   exit;
 }
 
-// gera novo código
+/* =========================
+   Gera novo código + salva no banco
+========================= */
+$CODIGO_MINUTOS = 15;
+
 $codigo = (string)random_int(100000, 999999);
 $codigoHash = hash("sha256", $codigo);
-$expira = (new DateTime())->modify("+15 minutes")->format("Y-m-d H:i:s");
+$expira = (new DateTime())->modify("+{$CODIGO_MINUTOS} minutes")->format("Y-m-d H:i:s");
 
-// salva no banco
 $upd = mysqli_prepare($conn, "
   UPDATE funcionarios
   SET email_codigo_hash = ?,
@@ -80,16 +75,25 @@ $upd = mysqli_prepare($conn, "
 ");
 $id = (int)$f["id"];
 mysqli_stmt_bind_param($upd, "ssi", $codigoHash, $expira, $id);
-mysqli_stmt_execute($upd);
 
-// envia
-$ok = send_code_email($email, $f["nome"], $codigo);
+if (!mysqli_stmt_execute($upd)) {
+  flash_set("danger", "Não consegui atualizar o código. Tente novamente.");
+  header("Location: confirmar_email.php?email=" . urlencode($email));
+  exit;
+}
 
+/* =========================
+   Envia por SMTP (PHPMailer)
+========================= */
+$ok = mailer_send_code($email, $f["nome"], $codigo, $CODIGO_MINUTOS);
+
+// marca envio (mesmo se falhar, pra não virar spam-click)
 $_SESSION["last_resend_code_ts"] = time();
 
 if ($ok) {
   flash_set("success", "Novo código enviado! Confere sua caixa de entrada (e spam).");
 } else {
+  // fallback pra dev (se SMTP falhar)
   flash_set("warning", "Não consegui enviar email (SMTP). Código para teste: {$codigo}");
 }
 

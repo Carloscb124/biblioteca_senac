@@ -1,7 +1,7 @@
 <?php
 // auth/entrar.php
 // - Faz login normal
-// - Se email não estiver confirmado, manda para confirmar_email.php
+// - Só exige confirmação de email para ADMIN
 
 include("../conexao.php");
 include("../includes/flash.php");
@@ -43,14 +43,12 @@ if ($email === "" || $senha === "") {
   exit;
 }
 
-// valida formato
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   flash_set("danger", "Email inválido.");
   header("Location: login.php");
   exit;
 }
 
-// valida domínio
 $dom = email_domain($email);
 if ($dom === "" || !in_array($dom, $ALLOWED_DOMAINS, true)) {
   flash_set("danger", "Email não permitido. Use um provedor comum (Gmail, Outlook...).");
@@ -58,7 +56,7 @@ if ($dom === "" || !in_array($dom, $ALLOWED_DOMAINS, true)) {
   exit;
 }
 
-// Busca usuário ativo
+// Busca funcionário ativo
 $stmt = mysqli_prepare($conn, "
   SELECT id, nome, email, senha, cargo, email_verificado
   FROM funcionarios
@@ -77,25 +75,28 @@ if (!$f || !password_verify($senha, $f["senha"])) {
   exit;
 }
 
-// BLOQUEIA login se não confirmou email
-if ((int)($f["email_verificado"] ?? 0) !== 1) {
+/*
+  ✅ REGRA CORRIGIDA:
+  Só ADMIN precisa confirmar email.
+  Bibliotecário nunca é travado por confirmação.
+*/
+$cargo = strtoupper((string)($f["cargo"] ?? ""));
+$emailVer = (int)($f["email_verificado"] ?? 0);
+
+if ($cargo === "ADMIN" && $emailVer !== 1) {
   flash_set("warning", "Seu email ainda não foi confirmado. Digite o código enviado.");
   header("Location: confirmar_email.php?email=" . urlencode($email));
   exit;
 }
 
-// normaliza cargo
-$cargo = strtoupper(trim($f["cargo"] ?? "BIBLIOTECARIO"));
-if ($cargo !== "ADMIN" && $cargo !== "BIBLIOTECARIO") $cargo = "BIBLIOTECARIO";
-
-// cria sessão
+// Login OK
 $_SESSION["auth"] = [
   "id"    => (int)$f["id"],
   "nome"  => $f["nome"],
   "email" => $f["email"],
-  "cargo" => $cargo,
+  "cargo" => $cargo
 ];
 
-flash_set("success", "Bem-vindo(a), " . $f["nome"] . "!");
-header("Location: ../index.php");
+flash_set("success", "Bem-vindo(a), {$f["nome"]}!");
+header("Location: {$base}/index.php");
 exit;
