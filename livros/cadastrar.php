@@ -148,7 +148,7 @@ function h($s)
           Salvar
         </button>
 
-        <a class="btn btn-outline-secondary" href="listar.php">Cancelar</a>
+        <a class="btn btn-pill" href="listar.php">Cancelar</a>
       </div>
     </form>
   </div>
