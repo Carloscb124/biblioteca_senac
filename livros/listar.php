@@ -161,7 +161,6 @@ $q = trim($_GET['q'] ?? '');
         <a href="#" class="btn btn-pill" id="detBtnEditar">
           <i class="bi bi-pencil me-1"></i>Editar
         </a>
-        <button type="button" class="btn btn-pill" data-bs-dismiss="modal">Fechar</button>
       </div>
     </div>
   </div>
