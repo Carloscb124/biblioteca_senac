@@ -7,7 +7,6 @@ include("../includes/header.php");
 // Só pra manter o input preenchido no primeiro load
 $q = trim($_GET['q'] ?? '');
 ?>
-
 <div class="container my-4">
   <div class="page-card">
     <div class="page-card__head">
@@ -19,7 +18,7 @@ $q = trim($_GET['q'] ?? '');
       </a>
     </div>
 
-    <!-- BUSCA -->
+    <!-- BUSCA + FILTRO -->
     <div class="row g-2 align-items-center mb-3">
       <div class="col-12 col-md-6">
         <div class="input-group">
@@ -35,6 +34,16 @@ $q = trim($_GET['q'] ?? '');
             value="<?= htmlspecialchars($q) ?>">
         </div>
         <small class="text-muted">A busca atualiza automaticamente enquanto você digita.</small>
+      </div>
+
+      <!-- NOVO: filtro de baixados -->
+      <div class="col-12 col-md-3">
+        <select id="statusFilter" class="form-select">
+          <option value="">Status (todos)</option>
+          <option value="ativos">Ativos</option>
+          <option value="baixados">Baixados</option>
+        </select>
+        <small class="text-muted">Filtrar livros do acervo.</small>
       </div>
     </div>
 
@@ -166,16 +175,13 @@ $q = trim($_GET['q'] ?? '');
   </div>
 </div>
 
-
 <style>
-  /* Quebra de linha pra títulos/autores enormes não estourarem a tabela */
   .cell-wrap{
     max-width: 320px;
     white-space: normal;
     word-break: break-word;
   }
 
-  /* Capa com tamanho consistente (sem ficar mini ou gigante) */
   .cover-thumb{
     width: 44px;
     height: 62px;
@@ -185,6 +191,7 @@ $q = trim($_GET['q'] ?? '');
     border: 1px solid rgba(0,0,0,.06);
     background: #efe9dd;
   }
+
   .cover-placeholder{
     width: 44px;
     height: 62px;
@@ -202,6 +209,7 @@ $q = trim($_GET['q'] ?? '');
 <script>
   // ===== Busca dinâmica + paginação (sem reload) =====
   const input = document.getElementById("bookSearch");
+  const statusFilter = document.getElementById("statusFilter");
   const tbody = document.getElementById("booksTbody");
   const pagWrap = document.getElementById("booksPagination");
   let timer = null;
@@ -215,8 +223,8 @@ $q = trim($_GET['q'] ?? '');
     pagWrap.innerHTML = "";
   }
 
-  async function fetchBooks({ q = "", p = 1 } = {}) {
-    const url = `buscar.php?q=${encodeURIComponent(q)}&p=${encodeURIComponent(p)}`;
+  async function fetchBooks({ q = "", p = 1, st = "" } = {}) {
+    const url = `buscar.php?q=${encodeURIComponent(q)}&p=${encodeURIComponent(p)}&st=${encodeURIComponent(st)}`;
     const resp = await fetch(url, { headers: { "X-Requested-With": "fetch" } });
 
     if (!resp.ok) {
@@ -238,20 +246,28 @@ $q = trim($_GET['q'] ?? '');
       a.addEventListener("click", (e) => {
         e.preventDefault();
         const page = parseInt(a.getAttribute("data-page"), 10) || 1;
-        fetchBooks({ q: input.value.trim(), p: page });
+        fetchBooks({ q: input.value.trim(), p: page, st: statusFilter.value });
       });
     });
   }
 
-  // debounce da busca (pra não virar metralhadora de request)
+  // debounce da busca
   input.addEventListener("input", () => {
     clearTimeout(timer);
-    timer = setTimeout(() => fetchBooks({ q: input.value.trim(), p: 1 }), 250);
+    timer = setTimeout(() => {
+      fetchBooks({ q: input.value.trim(), p: 1, st: statusFilter.value });
+    }, 250);
   });
 
-  fetchBooks({ q: input.value.trim(), p: 1 });
+  // NOVO: quando mudar o filtro, recarrega
+  statusFilter.addEventListener("change", () => {
+    fetchBooks({ q: input.value.trim(), p: 1, st: statusFilter.value });
+  });
 
-  // ===== Modais (delegação de evento - funciona com fetch) =====
+  // primeiro load
+  fetchBooks({ q: input.value.trim(), p: 1, st: statusFilter.value });
+
+  // ===== Modais: Baixar/Reativar =====
   const modalBaixarEl = document.getElementById("modalBaixarLivro");
   const modalReativarEl = document.getElementById("modalReativarLivro");
 
@@ -293,7 +309,7 @@ $q = trim($_GET['q'] ?? '');
     modal.show();
   });
 
-    // ===== MODAL DETALHES (clicar no livro) =====
+  // ===== MODAL DETALHES (clicar na linha) =====
   const modalDetEl = document.getElementById("modalDetalhesLivro");
 
   const detCapa = document.getElementById("detCapa");
@@ -306,17 +322,10 @@ $q = trim($_GET['q'] ?? '');
   const detSinopse = document.getElementById("detSinopse");
   const detBtnEditar = document.getElementById("detBtnEditar");
 
-  function getModalInstance(modalEl) {
-    if (!(window.bootstrap && typeof bootstrap.Modal === "function")) return null;
-    return bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-  }
-
-  // Clique na linha do livro abre detalhes
   tbody.addEventListener("click", async (e) => {
-
-    // Se clicou em botões de ação, deixa seu código atual cuidar
+    // Se clicou em botões de ação, não abre detalhes
     if (e.target.closest("[data-action='baixar']") || e.target.closest("[data-action='reativar']")) return;
-    if (e.target.closest("a.icon-btn")) return; // editar/ícones
+    if (e.target.closest("a.icon-btn")) return;
 
     const tr = e.target.closest("tr.book-row");
     if (!tr) return;
@@ -327,7 +336,7 @@ $q = trim($_GET['q'] ?? '');
     const modal = getModalInstance(modalDetEl);
     if (!modal) return;
 
-    // Mostra loading simples
+    // loading
     detTitulo.textContent = "Carregando...";
     detAutor.textContent = "";
     detAno.textContent = "-";
@@ -373,7 +382,6 @@ $q = trim($_GET['q'] ?? '');
       detSinopse.textContent = "Falha ao buscar detalhes. Tente novamente.";
     }
   });
-
 </script>
 
 <?php include("../includes/footer.php"); ?>

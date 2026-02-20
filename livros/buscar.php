@@ -8,7 +8,11 @@ $por_pagina = 10;
 $p = (int)($_GET['p'] ?? 1);
 if ($p < 1) $p = 1;
 
-$q = trim($_GET['q'] ?? '');
+$q  = trim($_GET['q'] ?? '');
+
+// NOVO: filtro de status (todos | ativos | baixados)
+$st = trim($_GET['st'] ?? ''); // "", "ativos", "baixados"
+
 $offset = ($p - 1) * $por_pagina;
 
 // ===== Monta WHERE da busca =====
@@ -16,6 +20,7 @@ $where = [];
 $params = [];
 $types = "";
 
+// Busca texto
 if ($q !== '') {
   $where[] = "(l.titulo LIKE ? OR l.autor LIKE ? OR l.ISBN LIKE ?)";
   $like = "%{$q}%";
@@ -23,6 +28,15 @@ if ($q !== '') {
   $params[] = $like;
   $params[] = $like;
   $types .= "sss";
+}
+
+// NOVO: filtro por status
+// disponivel = 1 => ativo no acervo
+// disponivel = 0 => baixado (desativado)
+if ($st === "ativos") {
+  $where[] = "l.disponivel = 1";
+} elseif ($st === "baixados") {
+  $where[] = "l.disponivel = 0";
 }
 
 $whereSql = $where ? ("WHERE " . implode(" AND ", $where)) : "";
@@ -161,7 +175,6 @@ while ($l = mysqli_fetch_assoc($r)) {
     ';
   }
 
-  // ✅ Linha clicável (data-action="detalhes")
   $rows_html .= '
     <tr class="book-row" data-book-id="'.$id.'">
       <td>'.$img.'</td>
