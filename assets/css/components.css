@@ -218,3 +218,71 @@
 .tr-click { cursor: pointer; }
 .tr-click:hover { background: rgba(0,0,0,.02); }
 
+/* ===============================
+   TOAST (notificação) - tema Biblioteca
+   =============================== */
+
+.toast-container{
+  /* fica “colado” no topo direito, mas sem atrapalhar a navbar */
+  padding-top: 12px !important;
+}
+
+.toast{
+  border-radius: 14px !important;
+  box-shadow: var(--shadow) !important;
+  border: 1px solid rgba(0,0,0,.08) !important;
+
+  /* efeito “vidrinho” leve */
+  backdrop-filter: blur(8px);
+}
+
+/* deixa o texto mais “app” */
+.toast .toast-body{
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Ajusta os fundos do toast pra combinar com teu tema
+   (porque o text-bg-* padrão do Bootstrap é muito “chapado”) */
+.toast.text-bg-success{
+  background: linear-gradient(180deg, var(--green), var(--green-2)) !important;
+  color: #fff !important;
+}
+
+.toast.text-bg-danger{
+  background: linear-gradient(180deg, #dc3545, #b02a37) !important;
+  color: #fff !important;
+}
+
+.toast.text-bg-warning{
+  background: linear-gradient(180deg, #ffc107, #e0a800) !important;
+  color: #1f2a26 !important; /* combina com teu texto escuro */
+}
+
+.toast.text-bg-info,
+.toast.text-bg-primary{
+  background: linear-gradient(180deg, #0ea5a4, #0b6e6d) !important;
+  color: #fff !important;
+}
+
+/* botão de fechar mais “limpo” */
+.toast .btn-close{
+  filter: none;
+  opacity: .9;
+}
+.toast .btn-close:hover{
+  opacity: 1;
+}
+
+/* mobile: não estoura a tela */
+@media (max-width: 576px){
+  .toast-container{
+    left: 0;
+    right: 0;
+    top: 0;
+  }
+  .toast{
+    width: calc(100vw - 24px) !important;
+    margin: 0 auto;
+  }
+}
