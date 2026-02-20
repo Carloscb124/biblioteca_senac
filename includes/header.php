@@ -17,6 +17,11 @@ $isAdmin = !empty($_SESSION['auth']) && strtoupper(trim($_SESSION['auth']['cargo
 $nomeCompleto = $_SESSION['auth']['nome'] ?? 'Usuário';
 $nomeCompleto = trim($nomeCompleto);
 $primeiroNome = explode(' ', $nomeCompleto)[0];
+
+// (Opcional) Headers básicos de segurança
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: same-origin");
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -118,22 +123,43 @@ $primeiroNome = explode(' ', $nomeCompleto)[0];
   <main class="app-main">
 
     <?php
-    if (function_exists('flash_get')) {
-      $flash = flash_get();
-      if ($flash) {
-        $type = $flash['type'] ?? 'info';
-        $msg  = $flash['message'] ?? '';
+    // ===== TOAST (no lugar do alert) =====
+    $flash = function_exists('flash_get') ? flash_get() : null;
+    if ($flash) {
+      $type = $flash['type'] ?? 'info';
+      $msg  = $flash['message'] ?? '';
 
-        $allowed = ['success', 'danger', 'warning', 'info'];
-        if (!in_array($type, $allowed, true)) $type = 'info';
+      // whitelisting dos tipos
+      $allowed = ['success', 'danger', 'warning', 'info'];
+      if (!in_array($type, $allowed, true)) $type = 'info';
+
+      // mapeia pro estilo do toast do bootstrap
+      $toastClass = match ($type) {
+        'success' => 'text-bg-success',
+        'danger'  => 'text-bg-danger',
+        'warning' => 'text-bg-warning',
+        default   => 'text-bg-info',
+      };
+
+      
+      $closeClass = ($type === 'warning') ? 'btn-close' : 'btn-close btn-close-white';
     ?>
-        <div class="container mt-3">
-          <div class="alert alert-<?= htmlspecialchars($type) ?> alert-dismissible fade show flash-msg" role="alert">
-            <?= nl2br(htmlspecialchars($msg)) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div id="appToast"
+             class="toast <?= $toastClass ?> border-0"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true"
+             data-bs-delay="3000">
+          <div class="d-flex">
+            <div class="toast-body">
+              <?= nl2br(htmlspecialchars($msg)) ?>
+            </div>
+            <button type="button"
+                    class="<?= $closeClass ?> me-2 m-auto"
+                    data-bs-dismiss="toast"
+                    aria-label="Fechar"></button>
           </div>
         </div>
-    <?php
-      }
-    }
-    ?>
+      </div>
+    <?php } ?>
