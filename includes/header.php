@@ -10,8 +10,13 @@ if (!isset($titulo_pagina)) $titulo_pagina = "Biblioteca";
 $base = "/biblioteca_senac";
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Detecta admin sem depender de includes (pra não quebrar header)
+// Detecta admin
 $isAdmin = !empty($_SESSION['auth']) && strtoupper(trim($_SESSION['auth']['cargo'] ?? '')) === 'ADMIN';
+
+// ===== PEGA APENAS O PRIMEIRO NOME =====
+$nomeCompleto = $_SESSION['auth']['nome'] ?? 'Usuário';
+$nomeCompleto = trim($nomeCompleto);
+$primeiroNome = explode(' ', $nomeCompleto)[0];
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -96,7 +101,7 @@ $isAdmin = !empty($_SESSION['auth']) && strtoupper(trim($_SESSION['auth']['cargo
           <div class="header-user">
             <div class="user-chip">
               <span class="user-dot"></span>
-              <span class="user-name"><?= htmlspecialchars($_SESSION['auth']['nome'] ?? 'Usuário') ?></span>
+              <span class="user-name"><?= htmlspecialchars($primeiroNome) ?></span>
             </div>
 
             <a href="<?= $base ?>/auth/sair.php" class="logout-btn">
@@ -105,6 +110,7 @@ $isAdmin = !empty($_SESSION['auth']) && strtoupper(trim($_SESSION['auth']['cargo
             </a>
           </div>
         <?php endif; ?>
+
       </div>
     </div>
   </nav>
@@ -112,24 +118,22 @@ $isAdmin = !empty($_SESSION['auth']) && strtoupper(trim($_SESSION['auth']['cargo
   <main class="app-main">
 
     <?php
-    // Mostra uma notificação (se existir) e apaga da sessão
     if (function_exists('flash_get')) {
       $flash = flash_get();
       if ($flash) {
         $type = $flash['type'] ?? 'info';
         $msg  = $flash['message'] ?? '';
 
-        // garante que só vai cair nas classes do Bootstrap
         $allowed = ['success', 'danger', 'warning', 'info'];
         if (!in_array($type, $allowed, true)) $type = 'info';
-  ?>
+    ?>
         <div class="container mt-3">
           <div class="alert alert-<?= htmlspecialchars($type) ?> alert-dismissible fade show flash-msg" role="alert">
             <?= nl2br(htmlspecialchars($msg)) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
           </div>
         </div>
-  <?php
+    <?php
       }
     }
-  ?>
+    ?>
